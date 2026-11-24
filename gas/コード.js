@@ -377,7 +377,8 @@ function callGeminiJson_(apiKey, parts) {
       return result.data;
     }
     lastErr = result.error;
-    if (result.code !== 404 && result.code !== 400) {
+    // 404/400(非対応)だけでなく、429/500/503(一時混雑)でも別モデルへ自動フォールバック
+    if (![400, 404, 429, 500, 503].includes(result.code)) {
       throw new Error(lastErr);
     }
   }
