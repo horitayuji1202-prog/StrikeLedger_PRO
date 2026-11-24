@@ -55,6 +55,20 @@
       display: inline-flex; align-items: center; gap: 4px;
     }
     .btn-sm.connected { border-color: var(--spare); color: #6ee7b7; }
+    .badge-new {
+      background: var(--strike); color: #fff; font-size: 9px; font-weight: 900;
+      padding: 1px 5px; border-radius: 999px; margin-left: 2px;
+    }
+    .changelog-item {
+      background: var(--bg); border: 1px solid var(--surface2); border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 8px;
+    }
+    .changelog-item:first-child { border-color: var(--primary); }
+    .changelog-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .changelog-ver { font-size: 11px; font-weight: 800; color: var(--primary); }
+    .changelog-date { font-size: 11px; color: var(--text-dim); }
+    .changelog-list { margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: var(--text); }
+    .changelog-list li { margin-bottom: 3px; }
     .top-nav {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
       max-width: 760px; margin: 0 auto;
@@ -218,9 +232,10 @@
   <div class="header-top">
     <div class="brand">🎳 StrikeLedger <span class="badge">PRO</span></div>
     <div class="header-actions">
+      <button id="btnChangelog" class="btn-sm" onclick="openChangelogModal()">📢 更新<span id="changelogNewBadge" class="badge-new" style="display:none;">NEW</span></button>
       <button id="btnCloudStatus" class="btn-sm connected" onclick="openModal('syncModal')">☁️ 接続中</button>
-      <button class="btn-sm" onclick="openModal('csvModal')">📥 CSV入出力</button>
-      <button id="btnHeaderSaveSeries" class="btn-sm" style="border-color:var(--primary); color:var(--primary);" onclick="saveAndSyncSeries()">💾 スコア登録</button>
+      <button class="btn-sm" onclick="openModal('csvModal')">📥 CSV</button>
+      <button id="btnHeaderSaveSeries" class="btn-sm" style="border-color:var(--primary); color:var(--primary);" onclick="saveAndSyncSeries()">💾 登録</button>
     </div>
   </div>
   <nav class="top-nav">
@@ -820,6 +835,20 @@
   </div>
 </div>
 
+<!-- お知らせ・更新履歴モーダル -->
+<div id="changelogModal" class="modal-backdrop">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0; font-size:16px;">📢 お知らせ・更新履歴</h3>
+      <button type="button" class="btn-sm" onclick="closeModal('changelogModal')">✕</button>
+    </div>
+    <p style="font-size:11px; color:var(--text-dim); margin:0 0 10px;">
+      StrikeLedger PRO のアップデート履歴・新機能のお知らせです。
+    </p>
+    <div id="changelogList"></div>
+  </div>
+</div>
+
 <!-- 連携設定モーダル -->
 <div id="syncModal" class="modal-backdrop">
   <div class="modal">
@@ -837,6 +866,72 @@
 
 <script>
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyb8KpDTj6yJ142MuK21_5UxSBV0t0iYe2ocXSttLrj1e7zIPYamnV24ZCfZK47iKwjIg/exec';
+
+const APP_CHANGELOG = [
+  {
+    version: 'v1.6',
+    date: '2026-11-24',
+    title: 'お知らせ・更新履歴掲示板を追加',
+    items: [
+      'ヘッダーに「📢 更新」ボタンを追加し、いつ・どんな機能が更新されたか確認できるようになりました',
+      '新しいアップデートがあるときは「NEW」バッジでお知らせします'
+    ]
+  },
+  {
+    version: 'v1.5',
+    date: '2026-11-24',
+    title: 'スコアシート写真のAI自動入力に対応',
+    items: [
+      '紙のスコアシートやモニター写真から、日付・ボウリング場名・1〜10Fの全投球をAIが自動読み取り＆自動検算できるようになりました',
+      '写真から読み取ったボウリング場が未登録の場合、ワンタップで「センター一覧」シートへ追加できます'
+    ]
+  },
+  {
+    version: 'v1.4',
+    date: '2026-11-24',
+    title: 'チーム合言葉（パスコード）ロックを導入',
+    items: [
+      '初回アクセス時に合言葉を入力するロック画面を追加し、チームメンバー以外からの閲覧・変更をブロックしました',
+      '1回入力すれば端末に記憶されるため、2回目以降はそのまま使えます'
+    ]
+  },
+  {
+    version: 'v1.3',
+    date: '2026-11-24',
+    title: '個人スタッツ刷新・スコア修正削除・CSV月別取込',
+    items: [
+      '「📊 スタッツ」タブを登録済み履歴からの「個人全体（通算）」と「個人月別」集計・推移グラフに刷新しました',
+      '「🏆 履歴・順位」タブを個人別・センター別（それぞれ通算／月別切替）に整理し、カードクリックで詳細展開・スコア修正・削除ができるようになりました',
+      '他社ボウリングアプリのフレーム詳細付きCSVを、月別絞り込み＆プレイヤー名指定で高精度に取り込めるようになりました'
+    ]
+  },
+  {
+    version: 'v1.2',
+    date: '2026-11-24',
+    title: 'プレイヤー登録＆個人別マイボール管理に対応',
+    items: [
+      'プレイヤーを新規登録・切替できるようになり、マイボール一覧が個人別にスプレッドシートへ自動同期されるようになりました'
+    ]
+  },
+  {
+    version: 'v1.1',
+    date: '2026-11-24',
+    title: 'センター一覧（278件）地方別検索＆ボール修正検索',
+    items: [
+      '全国のボウリング場（関西公式リスト含む278件）を「センター一覧」シートに整備し、地方別フィルタ＋あいまい検索＋五十音順で選べるようにしました',
+      '「ボール一覧の内容を修正」タブでもあいまい検索でボールを探せるようにしました'
+    ]
+  },
+  {
+    version: 'v1.0',
+    date: '2026-11-24',
+    title: 'StrikeLedger PRO 初期リリース',
+    items: [
+      '1〜10ピンタップ入力・10フレーム目のスタッツ集計改善・未入力ゲーム自動除外・二重登録防止を実装',
+      'レーンコンディション表のGemini AI自動解析、市販ボール481件マスタ連携に対応'
+    ]
+  }
+];
 
 const DEFAULT_BALLS = [
   { name: 'ブラックウィドー マニア', brand: 'HAMMER', cover: 'Pearl', core: 'Gas Mask', rg: '2.50 / 0.058', finish: '#1500 Polish' },
@@ -926,11 +1021,40 @@ function init() {
   resetPinDeckForNextRoll();
   renderAll();
   renderBallDb();
+  updateChangelogBadge();
   if (!state.passcode) {
     showPasscodeLock('');
   } else {
     fetchSharedScores(true);
   }
+}
+
+function updateChangelogBadge() {
+  const badge = document.getElementById('changelogNewBadge');
+  if (!badge || !APP_CHANGELOG.length) return;
+  const latest = APP_CHANGELOG[0].version;
+  const seen = localStorage.getItem('strikeLedgerPro_seenVersion') || '';
+  badge.style.display = (seen !== latest) ? 'inline-block' : 'none';
+}
+
+function openChangelogModal() {
+  const listEl = document.getElementById('changelogList');
+  if (listEl) {
+    listEl.innerHTML = APP_CHANGELOG.map((c, idx) =>
+      '<div class="changelog-item">' +
+        '<div class="changelog-head">' +
+          '<span class="changelog-ver">' + c.version + ' — ' + c.title + (idx === 0 ? ' <span class="badge-new">最新</span>' : '') + '</span>' +
+          '<span class="changelog-date">' + c.date + '</span>' +
+        '</div>' +
+        '<ul class="changelog-list">' + c.items.map(it => '<li>' + it + '</li>').join('') + '</ul>' +
+      '</div>'
+    ).join('');
+  }
+  if (APP_CHANGELOG.length) {
+    localStorage.setItem('strikeLedgerPro_seenVersion', APP_CHANGELOG[0].version);
+  }
+  updateChangelogBadge();
+  openModal('changelogModal');
 }
 
 function showPasscodeLock(errMsg) {
