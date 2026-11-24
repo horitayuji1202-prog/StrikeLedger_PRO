@@ -368,7 +368,15 @@ function handleCsvParse_(data) {
 function callGeminiJson_(apiKey, parts) {
   const cache = CacheService.getScriptCache();
   const cachedModel = cache.get('GEMINI_WORKING_MODEL');
-  const baseCandidates = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.0-flash', 'gemini-3-flash', 'gemini-2.5-flash'];
+  const baseCandidates = [
+    'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-flash-latest'
+  ];
   const candidates = cachedModel
     ? [cachedModel, ...baseCandidates.filter(m => m !== cachedModel)]
     : baseCandidates;
@@ -377,31 +385,55 @@ function callGeminiJson_(apiKey, parts) {
     generationConfig: { responseMimeType: 'application/json' }
   });
 
+  const tried = {};
   let lastErr = '';
+  let retryable503Model = '';
+
   for (let i = 0; i < candidates.length; i++) {
-    const model = candidates[i];
+    const model = String(candidates[i]).replace(/^models\//, '');
+    if (tried[model]) continue;
+    tried[model] = true;
     const result = fetchGeminiModel_(apiKey, model, payload);
     if (result.ok) {
       if (model !== cachedModel) cache.put('GEMINI_WORKING_MODEL', model, 21600);
       return result.data;
     }
     lastErr = result.error;
-    // 404/400(非対応)だけでなく、429/500/503(一時混雑)でも別モデルへ自動フォールバック
+    if (result.code === 503 && !retryable503Model) retryable503Model = model;
     if (![400, 404, 429, 500, 503].includes(result.code)) {
       throw new Error(lastErr);
     }
   }
 
-  // 上記候補がすべて使えない場合、利用可能な最新のflashモデルを自動検出して再試行
-  const fallbackModel = findAvailableFlashModel_(apiKey);
-  if (fallbackModel) {
-    const result = fetchGeminiModel_(apiKey, fallbackModel, payload);
+  // 上記候補がすべて使えない場合、利用可能なflashモデル一覧を自動検出して順に試す
+  const fallbackModels = findAvailableFlashModels_(apiKey);
+  for (let i = 0; i < fallbackModels.length && i < 8; i++) {
+    const model = String(fallbackModels[i]).replace(/^models\//, '');
+    if (tried[model]) continue;
+    tried[model] = true;
+    const result = fetchGeminiModel_(apiKey, model, payload);
     if (result.ok) {
-      cache.put('GEMINI_WORKING_MODEL', fallbackModel, 21600);
+      cache.put('GEMINI_WORKING_MODEL', model, 21600);
       return result.data;
     }
     lastErr = result.error;
+    if (result.code === 503 && !retryable503Model) retryable503Model = model;
+    if (![400, 404, 429, 500, 503].includes(result.code)) {
+      throw new Error(lastErr);
+    }
   }
+
+  // 一時混雑(503)のモデルがあった場合は少し待って1回だけ再試行
+  if (retryable503Model) {
+    Utilities.sleep(1800);
+    const retryRes = fetchGeminiModel_(apiKey, retryable503Model, payload);
+    if (retryRes.ok) {
+      cache.put('GEMINI_WORKING_MODEL', retryable503Model, 21600);
+      return retryRes.data;
+    }
+    lastErr = retryRes.error;
+  }
+
   throw new Error(lastErr || 'Gemini API呼び出しに失敗しました');
 }
 
@@ -439,22 +471,26 @@ function fetchGeminiModel_(apiKey, model, payload) {
   }
 }
 
-function findAvailableFlashModel_(apiKey) {
+function findAvailableFlashModels_(apiKey) {
   try {
     const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey, { muteHttpExceptions: true });
-    if (res.getResponseCode() !== 200) return '';
+    if (res.getResponseCode() !== 200) return [];
     const json = JSON.parse(res.getContentText());
+    const excludeRe = /(omni|tts|audio|image|live|robotics|computer-use|embedding)/i;
     const list = (json.models || []).filter(m =>
-      m.name && /flash/i.test(m.name) &&
+      m.name &&
+      /^models\/gemini-/i.test(m.name) &&
+      /flash/i.test(m.name) &&
+      !excludeRe.test(m.name) &&
       Array.isArray(m.supportedGenerationMethods) &&
       m.supportedGenerationMethods.includes('generateContent')
     );
-    if (!list.length) return '';
-    // 新しいバージョンを優先するため降順ソート
+    if (!list.length) return [];
+    // 新しい世代の標準flashモデルを優先（lite / preview / stable）
     list.sort((a, b) => String(b.name).localeCompare(String(a.name)));
-    return list[0].name;
+    return list.map(m => String(m.name).replace(/^models\//, ''));
   } catch (e) {
-    return '';
+    return [];
   }
 }
 
