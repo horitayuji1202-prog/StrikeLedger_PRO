@@ -311,7 +311,12 @@ function handleCsvParse_(data) {
 }
 
 function callGeminiJson_(apiKey, parts) {
-  const candidates = ['gemini-3.0-flash', 'gemini-3-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+  const cache = CacheService.getScriptCache();
+  const cachedModel = cache.get('GEMINI_WORKING_MODEL');
+  const baseCandidates = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.0-flash', 'gemini-3-flash', 'gemini-2.5-flash'];
+  const candidates = cachedModel
+    ? [cachedModel, ...baseCandidates.filter(m => m !== cachedModel)]
+    : baseCandidates;
   const payload = JSON.stringify({
     contents: [{ parts: parts }],
     generationConfig: { responseMimeType: 'application/json' }
@@ -321,7 +326,10 @@ function callGeminiJson_(apiKey, parts) {
   for (let i = 0; i < candidates.length; i++) {
     const model = candidates[i];
     const result = fetchGeminiModel_(apiKey, model, payload);
-    if (result.ok) return result.data;
+    if (result.ok) {
+      if (model !== cachedModel) cache.put('GEMINI_WORKING_MODEL', model, 21600);
+      return result.data;
+    }
     lastErr = result.error;
     if (result.code !== 404 && result.code !== 400) {
       throw new Error(lastErr);
@@ -332,7 +340,10 @@ function callGeminiJson_(apiKey, parts) {
   const fallbackModel = findAvailableFlashModel_(apiKey);
   if (fallbackModel) {
     const result = fetchGeminiModel_(apiKey, fallbackModel, payload);
-    if (result.ok) return result.data;
+    if (result.ok) {
+      cache.put('GEMINI_WORKING_MODEL', fallbackModel, 21600);
+      return result.data;
+    }
     lastErr = result.error;
   }
   throw new Error(lastErr || 'Gemini API呼び出しに失敗しました');

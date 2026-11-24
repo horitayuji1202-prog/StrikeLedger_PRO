@@ -352,7 +352,7 @@
             <div>
               <label>長さ・スポコン自動区分（比率3以下でスポコン）</label>
               <select id="condType" onchange="updateCondBadge(); saveLocalState();">
-                <option value="">自動判定 / 選択</option>
+                <option value="選択なし">選択なし（不明）</option>
                 <option value="ハウス">ハウス</option>
                 <option value="ショート">ショート (〜37ft)</option>
                 <option value="ミドル">ミドル (38〜42ft)</option>
@@ -578,6 +578,7 @@
           <label>オイル長さ絞り込み</label>
           <select id="rankCondFilter" onchange="renderRanking()">
             <option value="ALL">すべてのオイル長さ</option>
+            <option value="選択なし">選択なし（不明）</option>
             <option value="ハウス">ハウス</option>
             <option value="ショート">ショート</option>
             <option value="ミドル">ミドル</option>
@@ -868,6 +869,15 @@
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyb8KpDTj6yJ142MuK21_5UxSBV0t0iYe2ocXSttLrj1e7zIPYamnV24ZCfZK47iKwjIg/exec';
 
 const APP_CHANGELOG = [
+  {
+    version: 'v1.7',
+    date: '2026-11-24',
+    title: 'AI読み取りの高速化＆コンディション「選択なし」追加',
+    items: [
+      'AIモデルのキャッシュ化と画像圧縮の最適化により、スコアシート・コンディション表の読み取り速度を改善しました',
+      'レーンコンディションに「選択なし（不明）」項目とクリア機能を追加しました'
+    ]
+  },
   {
     version: 'v1.6',
     date: '2026-11-24',
@@ -1717,6 +1727,7 @@ function updateCondBadge() {
 function renderSavedConditionsDropdown() {
   const sel = document.getElementById('savedCondSelect');
   sel.innerHTML = '<option value="">-- 過去に解析・保存したパターンから自動貼り付け --</option>' +
+    '<option value="NONE">選択なし（コンディションをクリア）</option>' +
     state.savedConditions.map((c, i) =>
       '<option value="' + i + '">' + (c.patternName || 'パターン') + ' (' + (c.length || '-') + ' / ' + (c.type || '-') + ')</option>'
     ).join('');
@@ -1724,6 +1735,18 @@ function renderSavedConditionsDropdown() {
 
 function applySavedCondition(idxStr) {
   if (idxStr === '') return;
+  if (idxStr === 'NONE') {
+    document.getElementById('condName').value = '';
+    document.getElementById('condType').value = '選択なし';
+    document.getElementById('condLength').value = '';
+    document.getElementById('condVolume').value = '';
+    document.getElementById('condRatio').value = '';
+    document.getElementById('condNote').value = '';
+    updateCondBadge();
+    saveLocalState();
+    showToast('コンディションを「選択なし」にしました');
+    return;
+  }
   const c = state.savedConditions[Number(idxStr)];
   if (!c) return;
   document.getElementById('condName').value = c.patternName || '';
@@ -1865,12 +1888,12 @@ function handleScoreSheetPhoto(e) {
     const img = new Image();
     img.onload = async () => {
       const canvas = document.createElement('canvas');
-      const maxW = 1400;
+      const maxW = 1100;
       const scale = Math.min(1, maxW / img.width);
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
 
       if (prevEl) {
         prevEl.src = dataUrl;
