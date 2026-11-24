@@ -1,0 +1,3160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>StrikeLedger Pro - ボウリングスコア＆チーム共有アプリ</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #475569;
+      --text: #f8fafc;
+      --text-dim: #94a3b8;
+      --primary: #38bdf8;
+      --primary-dark: #0284c7;
+      --accent: #f59e0b;
+      --strike: #f43f5e;
+      --spare: #10b981;
+      --split: #ef4444;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 120px;
+      line-height: 1.45;
+    }
+    header {
+      position: sticky; top: 0; z-index: 60;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--surface2);
+      padding: 10px 14px 8px;
+    }
+    .header-top {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 760px; margin: 0 auto 8px;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; }
+    .brand span.badge {
+      background: linear-gradient(135deg, var(--primary), #818cf8);
+      color: #0f172a; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 900;
+    }
+    .header-actions { display: flex; gap: 6px; align-items: center; }
+    .btn-sm {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-sm.connected { border-color: var(--spare); color: #6ee7b7; }
+    .top-nav {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+      max-width: 760px; margin: 0 auto;
+    }
+    .nav-item {
+      background: var(--surface); border: 1px solid var(--surface2); color: var(--text-dim);
+      padding: 8px 4px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; gap: 4px; cursor: pointer;
+    }
+    .nav-item.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .container { max-width: 760px; margin: 0 auto; padding: 12px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--surface2);
+      border-radius: var(--radius); padding: 12px; margin-bottom: 12px;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 3px; font-weight: 600; }
+    input, select, textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 8px 10px; font-size: 13px; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+    .row-inline { display: flex; gap: 6px; align-items: center; }
+    .btn-icon {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+      padding: 8px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border: none; color: #0f172a; font-weight: 800; padding: 10px 14px; border-radius: 10px;
+      font-size: 13px; cursor: pointer; width: 100%;
+    }
+    .btn-accent {
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      border: none; color: #0f172a; font-weight: 800; padding: 10px 14px; border-radius: 10px;
+      font-size: 13px; cursor: pointer;
+    }
+    details summary {
+      cursor: pointer; font-weight: 700; font-size: 13px; list-style: none;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    .chip-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chip {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 5px 10px; border-radius: 999px; font-size: 11px; cursor: pointer;
+    }
+    .game-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
+    .game-tab {
+      background: var(--surface); border: 1px solid var(--surface2); color: var(--text-dim);
+      padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .game-tab.active { background: var(--primary); color: #0f172a; border-color: var(--primary); }
+    .frames-scroll { overflow-x: auto; padding-bottom: 6px; }
+    .frames-grid { display: grid; grid-template-columns: repeat(9, minmax(54px, 1fr)) minmax(74px, 1.3fr); gap: 3px; min-width: 580px; }
+    .frame-box {
+      background: var(--bg); border: 1px solid var(--surface2); border-radius: 6px;
+      text-align: center; cursor: pointer; overflow: hidden;
+    }
+    .frame-box.active { border: 2px solid var(--primary); box-shadow: 0 0 0 2px rgba(56,189,248,0.2); }
+    .frame-num { background: var(--surface2); font-size: 10px; font-weight: 700; padding: 2px 0; color: var(--text-dim); }
+    .rolls-row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--surface2); height: 24px; font-size: 12px; font-weight: 800; }
+    .frame-box.tenth .rolls-row { grid-template-columns: 1fr 1fr 1fr; }
+    .roll-cell { display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--surface2); }
+    .roll-cell:last-child { border-right: none; }
+    .roll-cell.strike { color: var(--strike); }
+    .roll-cell.spare { color: var(--spare); }
+    .roll-cell.split { color: var(--split); text-decoration: underline; }
+    .frame-total { height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+
+    .pin-deck {
+      background: var(--bg); border-radius: 12px; padding: 14px 10px; margin: 10px 0;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      border: 1px solid var(--surface2);
+    }
+    .pin-row { display: flex; gap: 14px; justify-content: center; }
+    .pin-btn {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: #f8fafc; color: #0f172a; border: 3px solid #cbd5e1;
+      font-weight: 900; font-size: 14px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.08s, opacity 0.15s;
+    }
+    .pin-btn.knocked {
+      background: var(--surface2); color: var(--text-dim); border-color: var(--border);
+      opacity: 0.38; transform: scale(0.92);
+    }
+    .pin-btn.headpin { border-color: var(--strike); }
+    .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .key-btn {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+      padding: 12px 6px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer;
+    }
+    .key-btn.strike-btn { background: rgba(244, 63, 94, 0.2); border-color: var(--strike); color: #fda4af; }
+    .key-btn.spare-btn { background: rgba(16, 185, 129, 0.2); border-color: var(--spare); color: #6ee7b7; }
+    .key-btn.commit-btn { background: var(--primary); color: #0f172a; border-color: var(--primary); grid-column: span 2; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-box { background: var(--bg); padding: 10px; border-radius: 10px; text-align: center; border: 1px solid var(--surface2); }
+    .stat-val { font-size: 18px; font-weight: 900; color: var(--primary); }
+    .stat-lbl { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+    .rank-card {
+      background: var(--bg); border: 1px solid var(--surface2); border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+    }
+    .rank-card-top { display: flex; justify-content: space-between; align-items: center; }
+    .rank-num { font-size: 18px; font-weight: 900; width: 34px; color: var(--accent); }
+    .game-detail-box {
+      margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--surface2);
+      font-size: 11px; display: none;
+    }
+    .game-detail-box.open { display: block; }
+    .pill-tag {
+      display: inline-block; background: rgba(56,189,248,0.15); color: var(--primary);
+      border: 1px solid rgba(56,189,248,0.35); border-radius: 6px; padding: 1px 6px; font-size: 10px; font-weight: 700;
+    }
+    .ball-cand-item {
+      background: var(--bg); border: 1px solid var(--surface2); border-radius: 8px;
+      padding: 8px 10px; margin-bottom: 6px; cursor: pointer;
+    }
+    .ball-cand-item:hover, .ball-cand-item.selected {
+      border-color: var(--primary); background: rgba(56,189,248,0.08);
+    }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100;
+      display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      max-width: 540px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 16px;
+    }
+    .toast {
+      position: fixed; top: 96px; left: 50%; transform: translateX(-50%);
+      background: #0f172a; border: 1px solid var(--primary); color: var(--text);
+      padding: 8px 16px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      z-index: 200; display: none; box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    }
+    .preview-img { max-width: 100%; max-height: 180px; border-radius: 8px; margin-top: 8px; border: 1px solid var(--border); }
+    .sub-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .sub-tab {
+      flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text-dim);
+      padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; text-align: center;
+    }
+    .sub-tab.active { background: var(--primary); color: #0f172a; border-color: var(--primary); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="brand">🎳 StrikeLedger <span class="badge">PRO</span></div>
+    <div class="header-actions">
+      <button id="btnCloudStatus" class="btn-sm connected" onclick="openModal('syncModal')">☁️ 接続中</button>
+      <button class="btn-sm" onclick="openModal('csvModal')">📥 CSV入出力</button>
+      <button id="btnHeaderSaveSeries" class="btn-sm" style="border-color:var(--primary); color:var(--primary);" onclick="saveAndSyncSeries()">💾 スコア登録</button>
+    </div>
+  </div>
+  <nav class="top-nav">
+    <button type="button" class="nav-item active" onclick="switchTab('score', this)">🎳 スコア入力</button>
+    <button type="button" class="nav-item" onclick="switchTab('stats', this)">📊 スタッツ</button>
+    <button type="button" class="nav-item" onclick="switchTab('ranking', this)">🏆 履歴・順位</button>
+    <button type="button" class="nav-item" onclick="switchTab('balls', this)">🔮 ボール登録</button>
+  </nav>
+</header>
+
+<div id="toast" class="toast"></div>
+
+<!-- チーム合言葉（パスコード）ロック画面 -->
+<div id="passcodeOverlay" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(15,23,42,0.98); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; max-width:380px; width:100%; padding:24px; text-align:center;">
+    <div style="font-size:32px; margin-bottom:6px;">🎳🔒</div>
+    <h2 style="margin:0 0 6px; font-size:18px;">StrikeLedger PRO</h2>
+    <p style="font-size:12px; color:var(--text-dim); margin:0 0 16px;">チームの合言葉（パスコード）を入力してください。<br>※1回入力するとこの端末に記憶されます。</p>
+    <input type="password" id="passcodeInput" placeholder="合言葉を入力" style="text-align:center; font-size:16px; letter-spacing:2px; margin-bottom:10px;" onkeydown="if(event.key==='Enter') submitPasscode();" />
+    <div id="passcodeError" style="font-size:12px; color:var(--split); min-height:18px; margin-bottom:10px;"></div>
+    <button type="button" id="btnUnlockPasscode" class="btn-primary" onclick="submitPasscode()">🔓 ロック解除</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- TAB 1: スコア入力 -->
+  <div id="tab-score" class="section active">
+    <div id="editModeBanner" class="card" style="display:none; border-color:var(--accent); background:rgba(245,158,11,0.14);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div style="font-size:12px; font-weight:800; color:#fcd34d;" id="editModeBannerText">✏️ 過去スコアを編集中</div>
+        <button type="button" class="btn-sm" onclick="cancelEditScoreMode()">✕ 編集キャンセル</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="grid-2" style="margin-bottom:8px;">
+        <div>
+          <label>日付</label>
+          <input type="date" id="metaDate" onchange="saveLocalState()" />
+        </div>
+        <div>
+          <label>ハンデ (1G)</label>
+          <input type="number" id="metaHdcp" value="0" min="0" max="150" onchange="saveLocalState(); renderAll();" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px;">
+        <label>👤 プレイヤー（選択すると個人別マイボール＆ハンデが切り替わります）</label>
+        <div class="row-inline">
+          <select id="playerSelect" style="flex:1;" onchange="onSelectPlayer(this.value)">
+            <option value="">-- プレイヤーを選択 --</option>
+          </select>
+          <button type="button" class="btn-icon" onclick="openPlayerModal()">＋ 新規登録</button>
+        </div>
+        <input type="hidden" id="metaPlayer" />
+      </div>
+
+      <div style="margin-bottom:8px;">
+        <label>ボウリング場（スプレッドシート「センター一覧」検索・選択 / GPS検索）</label>
+        <div class="grid-2" style="margin-bottom:6px;">
+          <select id="centerRegionFilter" onchange="renderCentersDropdown()">
+            <option value="ALL">すべての地方</option>
+          </select>
+          <input type="text" id="centerSearchInput" placeholder="あいまい検索（例: 六甲 / ラウンドワン / 尼崎）" oninput="renderCentersDropdown()" />
+        </div>
+        <div class="row-inline" style="margin-bottom:6px;">
+          <select id="centerSelect" onchange="onSelectCenterDropdown(this.value)">
+            <option value="">-- センター一覧から選択 --</option>
+          </select>
+          <button type="button" class="btn-icon" onclick="searchNearbyCenters()">📍 近くを検索</button>
+          <button type="button" class="btn-icon" onclick="openGoogleMaps()">🗺️ マップ</button>
+        </div>
+        <div class="row-inline">
+          <input type="text" id="metaCenter" placeholder="またはセンター名を直接入力" onchange="saveLocalState()" />
+          <button type="button" class="btn-icon" onclick="registerNewCenterToSheet()">＋ シートに登録</button>
+        </div>
+        <div id="nearbyResults" class="chip-wrap"></div>
+      </div>
+
+      <div>
+        <label>イベント・競技会名</label>
+        <input type="text" id="metaEvent" placeholder="例: 練習 / リーグ戦 / せんだんカップ" onchange="saveLocalState()" />
+      </div>
+    </div>
+
+    <!-- レーンコンディション -->
+    <div class="card">
+      <details id="condDetails">
+        <summary>
+          <span>🛢️ レーンコンディション（写真AI解析・保存済み選択）</span>
+          <span id="condBadge" style="font-size:11px; color:var(--primary);">未設定 ▾</span>
+        </summary>
+        <div style="margin-top:10px;">
+          <div style="margin-bottom:8px;">
+            <label>📂 保存済みコンディションを自動貼り付け（スプレッドシート履歴）</label>
+            <select id="savedCondSelect" onchange="applySavedCondition(this.value)">
+              <option value="">-- 過去に解析・保存したパターンから選択 --</option>
+            </select>
+          </div>
+
+          <div class="row-inline" style="margin-bottom:8px;">
+            <label class="btn-accent" style="text-align:center; flex:1; margin:0; cursor:pointer;">
+              📷 オイルパターン表を撮影 / 選択（AI自動解析＆保存）
+              <input type="file" accept="image/*" style="display:none;" onchange="handleConditionPhoto(event)" />
+            </label>
+          </div>
+          <div id="condUploadStatus" style="font-size:11px; color:var(--accent); margin-bottom:6px;"></div>
+          <img id="condPreviewImg" class="preview-img" style="display:none;" />
+
+          <div class="grid-2" style="margin-top:8px;">
+            <div>
+              <label>パターン名</label>
+              <input type="text" id="condName" placeholder="例: WTBA Athens" oninput="updateCondBadge(); saveLocalState();" />
+            </div>
+            <div>
+              <label>長さ・スポコン自動区分（比率3以下でスポコン）</label>
+              <select id="condType" onchange="updateCondBadge(); saveLocalState();">
+                <option value="">自動判定 / 選択</option>
+                <option value="ハウス">ハウス</option>
+                <option value="ショート">ショート (〜37ft)</option>
+                <option value="ミドル">ミドル (38〜42ft)</option>
+                <option value="ロング">ロング (43ft〜)</option>
+                <option value="スポコンS">スポコンS (比率3以下・〜37ft)</option>
+                <option value="スポコンM">スポコンM (比率3以下・38〜42ft)</option>
+                <option value="スポコンL">スポコンL (比率3以下・43ft〜)</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-3" style="margin-top:8px;">
+            <div>
+              <label>オイル長さ (ft)</label>
+              <input type="text" id="condLength" placeholder="例: 41ft" oninput="autoClassifyCondition(); saveLocalState();" />
+            </div>
+            <div>
+              <label>オイル比率</label>
+              <input type="text" id="condRatio" placeholder="例: 1:2.8 / 1:6.5" oninput="autoClassifyCondition(); saveLocalState();" />
+            </div>
+            <div>
+              <label>総オイル量 (mL)</label>
+              <input type="text" id="condVolume" placeholder="例: 24.8mL" oninput="saveLocalState();" />
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <label>コンディション解説・攻略ポイント（AI自動抽出 / 手入力）</label>
+            <textarea id="condNote" rows="2" placeholder="外がドライで内側にオイルが厚い、フッキングポイントなど" oninput="saveLocalState();"></textarea>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- スコアシート写真からAI自動入力 -->
+    <div class="card" style="border-color:rgba(56,189,248,0.45);">
+      <details id="scorePhotoDetails">
+        <summary>
+          <span>📸 スコアシート写真からAI自動入力（スコア＆センター読取）</span>
+          <span style="font-size:11px; color:var(--primary);">撮影 / 選択 ▾</span>
+        </summary>
+        <div style="margin-top:10px;">
+          <p style="font-size:11px; color:var(--text-dim); margin:0 0 8px;">
+            紙のスコアシートやレーンモニターの写真をアップすると、ボウリング場名・日付・各ゲームの1〜10FをAIが自動入力します。読み取り後に内容を確認・修正して登録できます。
+          </p>
+          <div class="row-inline" style="margin-bottom:8px;">
+            <label class="btn-primary" style="text-align:center; flex:1; margin:0; cursor:pointer;">
+              📷 スコアシートを撮影 / 写真を選択（AI読取）
+              <input type="file" accept="image/*" style="display:none;" onchange="handleScoreSheetPhoto(event)" />
+            </label>
+          </div>
+          <div id="scorePhotoStatus" style="font-size:11px; color:var(--accent); margin-bottom:6px;"></div>
+          <div id="scorePhotoCenterSuggest" style="display:none; margin-bottom:8px;"></div>
+          <img id="scorePhotoPreview" class="preview-img" style="display:none;" />
+        </div>
+      </details>
+    </div>
+
+    <!-- ゲーム切り替え -->
+    <div class="game-tabs" id="gameTabs"></div>
+
+    <!-- 使用ボール・ライン設定 -->
+    <div class="card">
+      <details open>
+        <summary>
+          <span>🔮 使用ボール・立ち位置（枚目）・スパット設定</span>
+          <span id="ballSummaryLabel" style="font-size:11px; color:var(--primary);">未選択 ▾</span>
+        </summary>
+        <div style="margin-top:10px;">
+          <div style="margin-bottom:8px;">
+            <label>使用ボール（マイボール一覧から選択）</label>
+            <select id="gameBallSelect" onchange="updateGameMeta('ball', this.value)"></select>
+          </div>
+          <div class="grid-2">
+            <div>
+              <label>立ち位置（左足基準・枚目）</label>
+              <input type="text" id="gameStance" placeholder="例: 28枚目" oninput="updateGameMeta('stance', this.value)" />
+            </div>
+            <div>
+              <label>スパット / フッキング（枚目）</label>
+              <input type="text" id="gameTarget" placeholder="例: 16枚目" oninput="updateGameMeta('target', this.value)" />
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- スコアシート -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="font-size:13px; font-weight:800;">
+          現在スコア: <span id="currentTotalScore" style="font-size:20px; color:var(--primary);">0</span>
+          <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">(MAX: <span id="maxPossibleScore">300</span>)</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-dim);" id="activeFrameInfo">1フレーム 1投目</div>
+      </div>
+
+      <div class="frames-scroll">
+        <div class="frames-grid" id="framesGrid"></div>
+      </div>
+
+      <!-- 1-10 ピンタップ入力 -->
+      <div class="pin-deck">
+        <div style="font-size:11px; color:var(--text-dim);">倒れたピンをタップ（明るいピン＝残ピン）</div>
+        <div class="pin-row">
+          <button type="button" class="pin-btn" data-pin="7" onclick="togglePin(7)">7</button>
+          <button type="button" class="pin-btn" data-pin="8" onclick="togglePin(8)">8</button>
+          <button type="button" class="pin-btn" data-pin="9" onclick="togglePin(9)">9</button>
+          <button type="button" class="pin-btn" data-pin="10" onclick="togglePin(10)">10</button>
+        </div>
+        <div class="pin-row">
+          <button type="button" class="pin-btn" data-pin="4" onclick="togglePin(4)">4</button>
+          <button type="button" class="pin-btn" data-pin="5" onclick="togglePin(5)">5</button>
+          <button type="button" class="pin-btn" data-pin="6" onclick="togglePin(6)">6</button>
+        </div>
+        <div class="pin-row">
+          <button type="button" class="pin-btn" data-pin="2" onclick="togglePin(2)">2</button>
+          <button type="button" class="pin-btn" data-pin="3" onclick="togglePin(3)">3</button>
+        </div>
+        <div class="pin-row">
+          <button type="button" class="pin-btn headpin" data-pin="1" onclick="togglePin(1)">1</button>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:4px;">
+          <button type="button" class="chip" onclick="presetLeave([10])">10ピン残り</button>
+          <button type="button" class="chip" onclick="presetLeave([7])">7ピン残り</button>
+          <button type="button" class="chip" onclick="presetLeave([4])">4ピン残り</button>
+          <button type="button" class="chip" onclick="presetLeave([6,10])">6-10残り</button>
+          <button type="button" class="chip" onclick="presetLeave([7,10])">7-10スプリット</button>
+        </div>
+      </div>
+
+      <!-- クイックキーパッド -->
+      <div class="keypad">
+        <button type="button" class="key-btn strike-btn" onclick="quickStrike()">X ストライク</button>
+        <button type="button" class="key-btn spare-btn" onclick="quickSpare()">/ スペア</button>
+        <button type="button" class="key-btn" onclick="quickGutter()">- ガター</button>
+        <button type="button" class="key-btn" onclick="undoLastRoll()">⌫ 1投戻す</button>
+        <button type="button" class="key-btn" onclick="resetCurrentGame()">🗑️ このGリセット</button>
+        <button type="button" class="key-btn" onclick="deleteCurrentGame()">✕ このG削除</button>
+        <button type="button" class="key-btn commit-btn" onclick="commitSelectedPins()">✅ 選択状態で確定 (<span id="knockedCountLabel">10</span>本)</button>
+      </div>
+
+      <div class="row-inline" style="margin-top:10px;">
+        <button id="btnMainSaveSeries" type="button" class="btn-primary" style="flex:1;" onclick="saveAndSyncSeries()">💾 このシリーズのスコアを登録・共有する</button>
+        <button type="button" class="btn-icon" style="padding:10px 12px;" onclick="startNewSeries()">🆕 新規シリーズ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: 個人スタッツ -->
+  <div id="tab-stats" class="section">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0; font-size:15px;">📊 個人スタッツ</h3>
+        <div class="row-inline">
+          <button type="button" class="btn-sm" onclick="fetchSharedScores()">🔄 最新読込</button>
+          <button type="button" class="btn-sm" onclick="exportCsv('shared')">📥 全履歴CSV</button>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-bottom:10px;">
+        <div>
+          <label>対象プレイヤー</label>
+          <select id="statsPlayerSelect" onchange="renderStats()"></select>
+        </div>
+        <div>
+          <label>集計期間</label>
+          <select id="statsModeSelect" onchange="renderStats()">
+            <option value="all">個人全体（通算）</option>
+            <option value="month">個人月別</option>
+            <option value="current">現在入力中シリーズ</option>
+          </select>
+        </div>
+        <div id="statsMonthWrap" style="display:none;">
+          <label>対象月</label>
+          <select id="statsMonthSelect" onchange="renderStats()"></select>
+        </div>
+      </div>
+      <div id="statsSummaryNote" style="font-size:11px; color:var(--text-dim); margin-bottom:8px;"></div>
+      <div class="stat-grid" id="statsGrid"></div>
+    </div>
+    <div class="card">
+      <h4 id="statsChartTitle" style="margin:0 0 8px; font-size:13px;">📈 月別アベレージ推移</h4>
+      <div id="seriesBarChart"></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: 順位表・過去のゲーム履歴 -->
+  <div id="tab-ranking" class="section">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0; font-size:15px;">🏆 多機能ランキング・履歴</h3>
+        <div class="row-inline">
+          <button type="button" class="btn-sm" onclick="fetchSharedScores()">🔄 最新読込</button>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:8px;">
+        <div>
+          <label>ランキング種別</label>
+          <select id="rankGroupBy" onchange="renderRanking()">
+            <option value="player">個人別ランキング</option>
+            <option value="center">センター別ランキング</option>
+          </select>
+        </div>
+        <div>
+          <label>集計期間（通算 / 月別）</label>
+          <select id="rankPeriodFilter" onchange="renderRanking()">
+            <option value="ALL">通算（全期間）</option>
+          </select>
+        </div>
+        <div>
+          <label>並び替え指標</label>
+          <select id="rankMetric" onchange="renderRanking()">
+            <option value="average">アベレージ順</option>
+            <option value="totalWithHdcp">ハンデ込トータル</option>
+            <option value="highGame">ハイスコア順</option>
+            <option value="strikeRate">ストライク率順</option>
+            <option value="spareRate">スペアカバー率順</option>
+            <option value="tenPinRate">10ピンカバー率順</option>
+            <option value="splitRate">スプリット発生率（低い順）</option>
+            <option value="punchOutRate">パンチアウト率順</option>
+          </select>
+        </div>
+        <div>
+          <label>オイル長さ絞り込み</label>
+          <select id="rankCondFilter" onchange="renderRanking()">
+            <option value="ALL">すべてのオイル長さ</option>
+            <option value="ハウス">ハウス</option>
+            <option value="ショート">ショート</option>
+            <option value="ミドル">ミドル</option>
+            <option value="ロング">ロング</option>
+            <option value="スポコンS">スポコンS</option>
+            <option value="スポコンM">スポコンM</option>
+            <option value="スポコンL">スポコンL</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="rankingList">
+        <p style="font-size:12px; color:var(--text-dim);">データを読み込み中です...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: ボール登録＆マスター修正（スプレッドシート「ボール一覧」連携） -->
+  <div id="tab-balls" class="section">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3 style="margin:0; font-size:15px;">🔮 ボール一覧（マスター）検索・登録・修正</h3>
+        <button type="button" class="btn-sm" onclick="fetchSharedScores()">🔄 一覧更新</button>
+      </div>
+      <div id="ballMasterCountInfo" style="font-size:11px; color:var(--text-dim); margin-bottom:10px;">
+        スプレッドシート「ボール一覧」読み込み中...
+      </div>
+
+      <div class="sub-tabs">
+        <button type="button" id="subTabReg" class="sub-tab active" onclick="switchBallSubMode('register')">＋ マイボールに登録</button>
+        <button type="button" id="subTabEdit" class="sub-tab" onclick="switchBallSubMode('edit')">✏️ ボール一覧の内容を修正</button>
+      </div>
+
+      <!-- モードA: マイボール登録 -->
+      <div id="ballModeRegister">
+        <div class="grid-2" style="margin-bottom:8px;">
+          <div>
+            <label>① メーカーを選択</label>
+            <select id="regMakerSelect" onchange="filterMasterBallsForRegister()">
+              <option value="ALL">すべてのメーカー</option>
+            </select>
+          </div>
+          <div>
+            <label>② ボール名のあいまい検索</label>
+            <input type="text" id="regBallSearch" placeholder="例: ブラックウィドー / フェイズ" oninput="filterMasterBallsForRegister()" />
+          </div>
+        </div>
+
+        <label>該当するボールをタップして選択（<span id="regMatchCount">0</span>件）</label>
+        <div id="regBallCandidateList" style="max-height:220px; overflow-y:auto; margin-bottom:10px;"></div>
+
+        <div id="regSelectedPreview" style="display:none; background:var(--bg); border:1px solid var(--primary); border-radius:10px; padding:10px; margin-bottom:10px;">
+          <div style="font-size:11px; color:var(--primary); font-weight:700;">選択中のボール</div>
+          <div id="regSelectedTitle" style="font-size:14px; font-weight:800; margin:2px 0;"></div>
+          <div id="regSelectedSpecs" style="font-size:11px; color:var(--text-dim);"></div>
+        </div>
+
+        <button type="button" class="btn-primary" onclick="registerSelectedMasterBall()">＋ 選択したボールをマイボールに登録</button>
+      </div>
+
+      <!-- モードB: ボール一覧マスターのデータ修正 -->
+      <div id="ballModeEdit" style="display:none;">
+        <div class="grid-2" style="margin-bottom:8px;">
+          <div>
+            <label>① メーカーで絞り込み</label>
+            <select id="editMakerSelect" onchange="filterMasterBallsForEdit()">
+              <option value="ALL">すべてのメーカー</option>
+            </select>
+          </div>
+          <div>
+            <label>② ボール名のあいまい検索</label>
+            <input type="text" id="editBallSearch" placeholder="例: ブラックウィドー / フェイズ" oninput="filterMasterBallsForEdit()" />
+          </div>
+        </div>
+
+        <label>修正するボールをタップして選択（<span id="editMatchCount">0</span>件）</label>
+        <div id="editBallCandidateList" style="max-height:200px; overflow-y:auto; margin-bottom:10px;"></div>
+
+        <div id="editBallFormArea" style="display:none; border-top:1px solid var(--surface2); padding-top:10px; margin-top:6px;">
+          <div style="font-size:11px; color:var(--accent); font-weight:700; margin-bottom:6px;">
+            編集中: <span id="editTargetLabel"></span>
+          </div>
+          <div class="grid-2" style="margin-bottom:8px;">
+            <div>
+              <label>ボール名</label>
+              <input type="text" id="editFieldName" />
+            </div>
+            <div>
+              <label>表面仕上げ</label>
+              <input type="text" id="editFieldFinish" />
+            </div>
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <label>③ カバーストック（同じメーカーのカバー一覧から選択・または直接修正）</label>
+            <div class="row-inline">
+              <select id="editCoverDropdown" style="flex:1;" onchange="if(this.value) document.getElementById('editFieldCover').value = this.value;">
+                <option value="">-- 同メーカーのカバー一覧から選択 --</option>
+              </select>
+              <input type="text" id="editFieldCover" style="flex:1;" placeholder="カバーストック名" />
+            </div>
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <label>④ コア（同じメーカーのコア一覧から選択・または直接修正）</label>
+            <div class="row-inline">
+              <select id="editCoreDropdown" style="flex:1;" onchange="if(this.value) document.getElementById('editFieldCore').value = this.value;">
+                <option value="">-- 同メーカーのコア一覧から選択 --</option>
+              </select>
+              <input type="text" id="editFieldCore" style="flex:1;" placeholder="コア名" />
+            </div>
+          </div>
+
+          <div class="grid-3" style="margin-bottom:10px;">
+            <div>
+              <label>RG</label>
+              <input type="text" id="editFieldRg" />
+            </div>
+            <div>
+              <label>ΔRG</label>
+              <input type="text" id="editFieldDrg" />
+            </div>
+            <div>
+              <label>マスバイアス差</label>
+              <input type="text" id="editFieldMb" />
+            </div>
+          </div>
+
+          <button type="button" class="btn-accent" style="width:100%;" onclick="saveEditedMasterBall()">💾 スプレッドシート「ボール一覧」を上書き修正</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h4 style="margin:0; font-size:13px;">🔮 登録済みマイボール一覧（<span id="myBallOwnerLabel" style="color:var(--primary);">プレイヤー未選択</span>）</h4>
+        <button type="button" class="btn-sm" onclick="openPlayerModal()">👤 プレイヤー切替/登録</button>
+      </div>
+      <div id="myBallList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CSV 入出力モーダル -->
+<div id="csvModal" class="modal-backdrop">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0; font-size:16px;">📥 CSVデータの書き出し ＆ 取り込み</h3>
+      <button type="button" class="btn-sm" onclick="closeModal('csvModal')">✕</button>
+    </div>
+    <div style="font-size:12px; font-weight:700; margin-bottom:6px;">1. Gemini分析用にCSVを書き出す</div>
+    <div class="grid-2" style="margin-bottom:14px;">
+      <button type="button" class="btn-icon" onclick="exportCsv('current')">📤 現在のシリーズCSV</button>
+      <button type="button" class="btn-icon" onclick="exportCsv('shared')">📤 全履歴データCSV</button>
+    </div>
+
+    <hr style="border:none; border-top:1px solid var(--surface2); margin:12px 0;" />
+    <div style="font-size:12px; font-weight:700; margin-bottom:6px;">2. 他アプリや過去のCSVを取り込む（自動解析・月別絞り込み対応）</div>
+    <p style="font-size:11px; color:var(--text-dim); margin:0 0 8px;">フレーム詳細付きボウリングアプリCSVは1〜10Fの全投球・残ピン・使用ボールまで完全再現します。取り込む月やプレイヤー名も指定できます。</p>
+    <input type="file" id="csvFileInput" accept=".csv,text/csv" onchange="handleCsvUpload(event)" style="margin-bottom:8px;" />
+    <div id="csvFilterControls" style="display:none; background:var(--bg); border:1px solid var(--surface2); border-radius:8px; padding:8px; margin-bottom:8px;">
+      <div class="grid-2">
+        <div>
+          <label>取り込む対象月</label>
+          <select id="csvMonthFilter" onchange="renderCsvImportPreview()">
+            <option value="ALL">すべての期間</option>
+          </select>
+        </div>
+        <div>
+          <label>プレイヤー名の上書き（空ならCSVのまま）</label>
+          <input type="text" id="csvPlayerOverride" placeholder="例: 堀田" oninput="renderCsvImportPreview()" />
+        </div>
+      </div>
+    </div>
+    <div id="csvImportStatus" style="font-size:11px; color:var(--accent); margin-bottom:8px;"></div>
+    <div id="csvPreviewList" style="max-height:200px; overflow-y:auto; font-size:11px; margin-bottom:8px;"></div>
+    <button type="button" id="btnConfirmCsvImport" class="btn-primary" style="display:none;" onclick="confirmCsvBulkImport()">✅ この内容でスプレッドシートへ一括登録</button>
+  </div>
+</div>
+
+<!-- プレイヤー登録モーダル -->
+<div id="playerModal" class="modal-backdrop">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0; font-size:16px;">👤 プレイヤー新規登録・設定</h3>
+      <button type="button" class="btn-sm" onclick="closeModal('playerModal')">✕</button>
+    </div>
+    <p style="font-size:11px; color:var(--text-dim); margin:0 0 10px;">
+      プレイヤーを登録すると、自分専用のマイボール一覧がスプレッドシートに保存され、どの端末からでも同じマイボールを使えます。
+    </p>
+    <div style="margin-bottom:8px;">
+      <label>プレイヤー名（ニックネーム可）</label>
+      <input type="text" id="newPlayerName" placeholder="例: 田中 / 佐藤" />
+    </div>
+    <div style="margin-bottom:12px;">
+      <label>デフォルトハンデ (1G)</label>
+      <input type="number" id="newPlayerHdcp" value="0" min="0" max="150" />
+    </div>
+    <button type="button" class="btn-primary" onclick="registerNewPlayer()">✅ 登録してこのプレイヤーに切り替え</button>
+  </div>
+</div>
+
+<!-- スコア履歴ダイレクト修正モーダル（ゲームJSONが無いデータ用） -->
+<div id="editRecordModal" class="modal-backdrop">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0; font-size:16px;">✏️ 登録済みスコアの修正</h3>
+      <button type="button" class="btn-sm" onclick="closeModal('editRecordModal')">✕</button>
+    </div>
+    <div class="grid-2" style="margin-bottom:8px;">
+      <div>
+        <label>日付</label>
+        <input type="date" id="erDate" />
+      </div>
+      <div>
+        <label>プレイヤー名</label>
+        <input type="text" id="erPlayer" />
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:8px;">
+      <div>
+        <label>ボウリング場</label>
+        <input type="text" id="erCenter" />
+      </div>
+      <div>
+        <label>イベント名</label>
+        <input type="text" id="erEvent" />
+      </div>
+    </div>
+    <div class="grid-3" style="margin-bottom:8px;">
+      <div>
+        <label>ゲーム数</label>
+        <input type="number" id="erGames" min="1" />
+      </div>
+      <div>
+        <label>スクラッチ合計</label>
+        <input type="number" id="erScratch" min="0" />
+      </div>
+      <div>
+        <label>ハンデ (1G)</label>
+        <input type="number" id="erHdcp" min="0" />
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:10px;">
+      <div>
+        <label>ハイスコア</label>
+        <input type="number" id="erHigh" min="0" max="300" />
+      </div>
+      <div>
+        <label>パターン名</label>
+        <input type="text" id="erCondName" />
+      </div>
+    </div>
+    <button type="button" class="btn-primary" onclick="saveDirectEditedRecord()">💾 修正内容を上書き保存</button>
+  </div>
+</div>
+
+<!-- 連携設定モーダル -->
+<div id="syncModal" class="modal-backdrop">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0; font-size:16px;">☁️ Googleスプレッドシート連携設定</h3>
+      <button type="button" class="btn-sm" onclick="closeModal('syncModal')">✕</button>
+    </div>
+    <label>Apps Script ウェブアプリURL</label>
+    <input type="text" id="gasUrlInput" />
+    <button type="button" class="btn-primary" style="margin-top:8px;" onclick="saveGasUrl()">接続設定を保存</button>
+    <hr style="border:none; border-top:1px solid var(--surface2); margin:12px 0;" />
+    <button type="button" class="btn-sm" style="width:100%; justify-content:center; border-color:var(--split); color:#fca5a5;" onclick="clearPasscodeAndLock()">🔒 合言葉をリセットしてロックする</button>
+  </div>
+</div>
+
+<script>
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyb8KpDTj6yJ142MuK21_5UxSBV0t0iYe2ocXSttLrj1e7zIPYamnV24ZCfZK47iKwjIg/exec';
+
+const DEFAULT_BALLS = [
+  { name: 'ブラックウィドー マニア', brand: 'HAMMER', cover: 'Pearl', core: 'Gas Mask', rg: '2.50 / 0.058', finish: '#1500 Polish' },
+  { name: 'ブラックウィドー ツアー V1', brand: 'HAMMER', cover: 'Solid', core: 'Gas Mask', rg: '2.50 / 0.036', finish: '#2000 Abralon' },
+  { name: 'エフェクトツアー', brand: 'HAMMER', cover: 'Solid', core: 'Huntsman', rg: '2.47 / 0.036', finish: '#2000 Abralon' },
+  { name: 'アイオンマックスパール', brand: 'STORM', cover: 'Pearl', core: 'Element Max A.I.', rg: '2.47 / 0.055', finish: '#1000 Abralon' },
+  { name: 'フェイズIII SE', brand: 'STORM', cover: 'Hybrid', core: 'Velocity', rg: '2.48 / 0.051', finish: '#1500 Polish' },
+  { name: 'マーヴェル・マックス・ワールド', brand: 'STORM', cover: 'Solid', core: 'Centripetal', rg: '2.48 / 0.050', finish: '#2000 Abralon' },
+  { name: 'ノットウレタン', brand: 'HAMMER', cover: 'Urethane', core: 'LED', rg: '2.65 / 0.015', finish: '#1000 Abralon' }
+];
+
+const DEFAULT_CENTERS = [
+  { name: 'ラウンドワン尼崎', area: '兵庫県尼崎市' },
+  { name: 'ボウルアロー松原店', area: '大阪府松原市' },
+  { name: 'エックスボウル東大阪', area: '大阪府東大阪市' },
+  { name: '四條畷ボウル', area: '大阪府四條畷市' }
+];
+
+let state = {
+  date: new Date().toISOString().slice(0, 10),
+  player: '',
+  hdcp: 0,
+  center: '',
+  event: '',
+  cond: { name: '', type: '', length: '', volume: '', ratio: '', note: '', imageUrl: '' },
+  games: [createEmptyGame(), createEmptyGame(), createEmptyGame()],
+  activeGame: 0,
+  balls: [],
+  players: [],
+  ballMaster: [],
+  centers: DEFAULT_CENTERS,
+  savedConditions: [],
+  gasUrl: DEFAULT_GAS_URL,
+  passcode: '',
+  sharedRecords: [],
+  localHistory: []
+};
+
+let knockedPins = new Set([1,2,3,4,5,6,7,8,9,10]);
+let pendingCsvRecords = [];
+let selectedMasterBall = null;
+let editingOrigBall = null;
+let isSyncingSeries = false;
+let editingScoreRowNumber = null;
+let directEditingRecord = null;
+let renderedRecordMap = {};
+
+function createEmptyGame() {
+  return {
+    frames: Array.from({ length: 10 }, () => ({ rolls: [], leaves: [], splits: [] })),
+    ball: '', stance: '28枚目', target: '16枚目'
+  };
+}
+
+function init() {
+  const saved = localStorage.getItem('strikeLedgerPro_v5');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+      if (!state.gasUrl) state.gasUrl = DEFAULT_GAS_URL;
+      if (!Array.isArray(state.balls)) state.balls = [];
+      if (!Array.isArray(state.players)) state.players = [];
+      if (!state.centers || !state.centers.length) state.centers = DEFAULT_CENTERS;
+      if (!state.ballMaster) state.ballMaster = [];
+    } catch (e) {}
+  }
+  document.getElementById('metaDate').value = state.date;
+  document.getElementById('metaPlayer').value = state.player;
+  document.getElementById('metaHdcp').value = state.hdcp;
+  document.getElementById('metaCenter').value = state.center;
+  document.getElementById('metaEvent').value = state.event;
+  document.getElementById('gasUrlInput').value = state.gasUrl || DEFAULT_GAS_URL;
+
+  document.getElementById('condName').value = state.cond.name || '';
+  document.getElementById('condType').value = state.cond.type || '';
+  document.getElementById('condLength').value = state.cond.length || '';
+  document.getElementById('condVolume').value = state.cond.volume || '';
+  document.getElementById('condRatio').value = state.cond.ratio || '';
+  document.getElementById('condNote').value = state.cond.note || '';
+
+  updateCondBadge();
+  renderPlayersDropdown();
+  renderCentersDropdown();
+  renderSavedConditionsDropdown();
+  initBallMasterUI();
+  resetPinDeckForNextRoll();
+  renderAll();
+  renderBallDb();
+  if (!state.passcode) {
+    showPasscodeLock('');
+  } else {
+    fetchSharedScores(true);
+  }
+}
+
+function showPasscodeLock(errMsg) {
+  const ov = document.getElementById('passcodeOverlay');
+  const errEl = document.getElementById('passcodeError');
+  if (ov) ov.style.display = 'flex';
+  if (errEl) errEl.textContent = errMsg || '';
+  const inp = document.getElementById('passcodeInput');
+  if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 50); }
+}
+
+function hidePasscodeLock() {
+  const ov = document.getElementById('passcodeOverlay');
+  if (ov) ov.style.display = 'none';
+}
+
+function clearPasscodeAndLock() {
+  state.passcode = '';
+  saveLocalState();
+  closeModal('syncModal');
+  showPasscodeLock('合言葉をリセットしました。再入力してください。');
+}
+
+async function submitPasscode() {
+  const inp = document.getElementById('passcodeInput');
+  const errEl = document.getElementById('passcodeError');
+  const btn = document.getElementById('btnUnlockPasscode');
+  const code = (inp ? inp.value : '').trim();
+  if (!code) {
+    if (errEl) errEl.textContent = '合言葉を入力してください';
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 確認中...'; }
+  if (errEl) errEl.textContent = '';
+  try {
+    const baseUrl = state.gasUrl || DEFAULT_GAS_URL;
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    const res = await fetch(baseUrl + sep + 'pass=' + encodeURIComponent(code));
+    const json = await res.json();
+    if (json.status === 'unauthorized') {
+      if (errEl) errEl.textContent = '❌ 合言葉が正しくありません';
+      return;
+    }
+    if (json.status === 'ok') {
+      state.passcode = code;
+      applyFetchedData(json);
+      saveLocalState();
+      hidePasscodeLock();
+      showToast('🔓 ロックを解除しました');
+    } else {
+      if (errEl) errEl.textContent = '❌ 認証エラー: ' + (json.message || '失敗');
+    }
+  } catch (e) {
+    if (errEl) errEl.textContent = '❌ 通信エラーが発生しました';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔓 ロック解除'; }
+  }
+}
+
+async function gasPost(payloadObj) {
+  const res = await fetch(state.gasUrl || DEFAULT_GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ ...payloadObj, pass: state.passcode || '' })
+  });
+  const json = await res.json();
+  if (json.status === 'unauthorized') {
+    state.passcode = '';
+    saveLocalState();
+    showPasscodeLock('合言葉の再入力が必要です');
+  }
+  return json;
+}
+
+function saveLocalState() {
+  state.date = document.getElementById('metaDate').value;
+  state.player = document.getElementById('metaPlayer').value;
+  state.hdcp = Number(document.getElementById('metaHdcp').value || 0);
+  state.center = document.getElementById('metaCenter').value;
+  state.event = document.getElementById('metaEvent').value;
+  state.cond = {
+    name: document.getElementById('condName').value,
+    type: document.getElementById('condType').value,
+    length: document.getElementById('condLength').value,
+    volume: document.getElementById('condVolume').value,
+    ratio: document.getElementById('condRatio').value,
+    note: document.getElementById('condNote').value,
+    imageUrl: state.cond.imageUrl || ''
+  };
+  localStorage.setItem('strikeLedgerPro_v5', JSON.stringify(state));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (name === 'stats') renderStats();
+  if (name === 'ranking') renderRanking();
+  if (name === 'balls') {
+    initBallMasterUI();
+    renderBallDb();
+  }
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function saveGasUrl() {
+  state.gasUrl = document.getElementById('gasUrlInput').value.trim() || DEFAULT_GAS_URL;
+  saveLocalState();
+  closeModal('syncModal');
+  showToast('連携URLを保存しました');
+  fetchSharedScores();
+}
+
+/* ボール一覧マスター連携 UI */
+function normalizeBallRow(row) {
+  return {
+    releaseDate: String(row['発売日'] || '').trim(),
+    maker: String(row['メーカー'] || '').trim(),
+    name: String(row['ボール名'] || '').trim(),
+    cover: String(row['カバーストック'] || '').trim(),
+    core: String(row['コア'] || '').trim(),
+    rg: String(row['RG'] || '').trim(),
+    drg: String(row['ΔRG'] || '').trim(),
+    mb: String(row['マスバイアス差'] || '').trim(),
+    finish: String(row['表面仕上げ'] || '').trim()
+  };
+}
+
+function initBallMasterUI() {
+  const list = (state.ballMaster || []).map(normalizeBallRow).filter(b => b.name);
+  const infoEl = document.getElementById('ballMasterCountInfo');
+  if (!list.length) {
+    infoEl.textContent = '※スプレッドシートの「ボール一覧」シートからデータを取得中（または右上の「🔄 一覧更新」を押してください）';
+  } else {
+    infoEl.textContent = 'スプレッドシート「ボール一覧」連携中：全 ' + list.length + ' 件';
+  }
+
+  const makers = [...new Set(list.map(b => b.maker).filter(Boolean))].sort();
+
+  const regMakerSel = document.getElementById('regMakerSelect');
+  const prevRegMaker = regMakerSel.value;
+  regMakerSel.innerHTML = '<option value="ALL">すべてのメーカー (' + makers.length + '社)</option>' +
+    makers.map(m => '<option value="' + m + '"' + (prevRegMaker === m ? ' selected' : '') + '>' + m + '</option>').join('');
+
+  const editMakerSel = document.getElementById('editMakerSelect');
+  const prevEditMaker = editMakerSel.value || 'ALL';
+  editMakerSel.innerHTML = '<option value="ALL">すべてのメーカー (' + makers.length + '社)</option>' +
+    makers.map(m => '<option value="' + m + '"' + (prevEditMaker === m ? ' selected' : '') + '>' + m + '</option>').join('');
+
+  filterMasterBallsForRegister();
+  filterMasterBallsForEdit();
+}
+
+function switchBallSubMode(mode) {
+  document.getElementById('subTabReg').classList.toggle('active', mode === 'register');
+  document.getElementById('subTabEdit').classList.toggle('active', mode === 'edit');
+  document.getElementById('ballModeRegister').style.display = mode === 'register' ? 'block' : 'none';
+  document.getElementById('ballModeEdit').style.display = mode === 'edit' ? 'block' : 'none';
+}
+
+function toHiragana(str) {
+  return String(str || '').replace(/[\u30a1-\u30f6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60)).toLowerCase();
+}
+
+function filterMasterBallsForRegister() {
+  const list = (state.ballMaster || []).map(normalizeBallRow).filter(b => b.name);
+  const maker = document.getElementById('regMakerSelect').value;
+  const query = toHiragana(document.getElementById('regBallSearch').value.trim());
+
+  const filtered = list.filter(b => {
+    if (maker !== 'ALL' && b.maker !== maker) return false;
+    if (!query) return true;
+    const target = toHiragana(b.name + ' ' + b.cover + ' ' + b.core);
+    return target.includes(query);
+  }).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+  document.getElementById('regMatchCount').textContent = filtered.length;
+  const box = document.getElementById('regBallCandidateList');
+  if (!filtered.length) {
+    box.innerHTML = '<div style="font-size:11px; color:var(--text-dim); padding:8px;">該当するボールがありません</div>';
+    return;
+  }
+
+  box.innerHTML = filtered.slice(0, 50).map((b) => {
+    const isSel = selectedMasterBall && selectedMasterBall.name === b.name && selectedMasterBall.maker === b.maker;
+    const jsonAttr = JSON.stringify(b).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    return '<div class="ball-cand-item ' + (isSel ? 'selected' : '') + '" onclick="selectMasterBallForReg(JSON.parse(this.dataset.ball))" data-ball="' + jsonAttr + '">' +
+      '<div style="font-weight:800; font-size:13px;">' + b.name + ' <span class="pill-tag">' + b.maker + '</span></div>' +
+      '<div style="font-size:11px; color:var(--text-dim);">カバー: ' + (b.cover || '-') + ' / コア: ' + (b.core || '-') + ' / RG: ' + (b.rg || '-') + ' (Δ' + (b.drg || '-') + ')</div>' +
+    '</div>';
+  }).join('');
+}
+
+function selectMasterBallForReg(b) {
+  selectedMasterBall = b;
+  const prevBox = document.getElementById('regSelectedPreview');
+  prevBox.style.display = 'block';
+  document.getElementById('regSelectedTitle').textContent = b.name + ' [' + b.maker + ']';
+  document.getElementById('regSelectedSpecs').textContent =
+    'カバー: ' + (b.cover || '-') + ' / コア: ' + (b.core || '-') + ' / RG: ' + (b.rg || '-') + ' / ΔRG: ' + (b.drg || '-') + ' / 表面: ' + (b.finish || '-');
+  filterMasterBallsForRegister();
+}
+
+function registerSelectedMasterBall() {
+  if (!state.player) {
+    showToast('⚠️ 先にプレイヤーを選択・登録してください');
+    openPlayerModal();
+    return;
+  }
+  if (!selectedMasterBall) return showToast('一覧からボールをタップして選択してください');
+  const b = selectedMasterBall;
+  const rgStr = b.rg ? (b.drg ? b.rg + ' / ' + b.drg : b.rg) : '';
+  const existsIdx = state.balls.findIndex(item => item.name === b.name);
+  const newObj = {
+    name: b.name,
+    brand: b.maker,
+    cover: b.cover,
+    core: b.core,
+    rg: rgStr,
+    finish: b.finish
+  };
+  if (existsIdx >= 0) {
+    state.balls[existsIdx] = newObj;
+  } else {
+    state.balls.unshift(newObj);
+  }
+  saveLocalState();
+  renderBallDb();
+  renderBallSelect();
+  showToast('✅ 「' + b.name + '」をマイボールに登録しました！');
+  syncCurrentPlayerToSheet();
+}
+
+/* ボール一覧マスターの修正機能（あいまい検索対応） */
+function filterMasterBallsForEdit() {
+  const list = (state.ballMaster || []).map(normalizeBallRow).filter(b => b.name);
+  const maker = document.getElementById('editMakerSelect').value || 'ALL';
+  const query = toHiragana((document.getElementById('editBallSearch') && document.getElementById('editBallSearch').value || '').trim());
+
+  const filtered = list.filter(b => {
+    if (maker !== 'ALL' && b.maker !== maker) return false;
+    if (!query) return true;
+    const target = toHiragana(b.name + ' ' + b.maker + ' ' + b.cover + ' ' + b.core);
+    return target.includes(query);
+  }).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+  const countEl = document.getElementById('editMatchCount');
+  if (countEl) countEl.textContent = filtered.length;
+  const box = document.getElementById('editBallCandidateList');
+  if (!box) return;
+  if (!filtered.length) {
+    box.innerHTML = '<div style="font-size:11px; color:var(--text-dim); padding:8px;">該当するボールがありません</div>';
+    return;
+  }
+
+  box.innerHTML = filtered.slice(0, 50).map((b) => {
+    const isSel = editingOrigBall && editingOrigBall.origName === b.name && editingOrigBall.origMaker === b.maker;
+    const jsonAttr = JSON.stringify(b).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    return '<div class="ball-cand-item ' + (isSel ? 'selected' : '') + '" onclick="selectMasterBallForEdit(JSON.parse(this.dataset.ball))" data-ball="' + jsonAttr + '">' +
+      '<div style="font-weight:800; font-size:13px;">' + b.name + ' <span class="pill-tag">' + b.maker + '</span></div>' +
+      '<div style="font-size:11px; color:var(--text-dim);">カバー: ' + (b.cover || '-') + ' / コア: ' + (b.core || '-') + ' / RG: ' + (b.rg || '-') + ' (Δ' + (b.drg || '-') + ')</div>' +
+    '</div>';
+  }).join('');
+}
+
+function selectMasterBallForEdit(b) {
+  if (!b) return;
+  editingOrigBall = { origMaker: b.maker, origName: b.name };
+  const sameMakerList = (state.ballMaster || []).map(normalizeBallRow).filter(item => item.maker === b.maker);
+  const covers = [...new Set(sameMakerList.map(item => item.cover).filter(Boolean))].sort();
+  const cores = [...new Set(sameMakerList.map(item => item.core).filter(Boolean))].sort();
+
+  document.getElementById('editCoverDropdown').innerHTML =
+    '<option value="">-- 同メーカー(' + b.maker + ')のカバー一覧 (' + covers.length + '種) --</option>' +
+    covers.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+
+  document.getElementById('editCoreDropdown').innerHTML =
+    '<option value="">-- 同メーカー(' + b.maker + ')のコア一覧 (' + cores.length + '種) --</option>' +
+    cores.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+
+  const lbl = document.getElementById('editTargetLabel');
+  if (lbl) lbl.textContent = b.name + ' [' + b.maker + ']';
+  document.getElementById('editFieldName').value = b.name;
+  document.getElementById('editFieldFinish').value = b.finish;
+  document.getElementById('editFieldCover').value = b.cover;
+  document.getElementById('editCoverDropdown').value = b.cover;
+  document.getElementById('editFieldCore').value = b.core;
+  document.getElementById('editCoreDropdown').value = b.core;
+  document.getElementById('editFieldRg').value = b.rg;
+  document.getElementById('editFieldDrg').value = b.drg;
+  document.getElementById('editFieldMb').value = (b.mb && b.mb !== 'N/A') ? b.mb : '';
+  document.getElementById('editBallFormArea').style.display = 'block';
+  filterMasterBallsForEdit();
+}
+
+async function saveEditedMasterBall() {
+  if (!editingOrigBall) return;
+  const payload = {
+    action: 'updateBallMaster',
+    origMaker: editingOrigBall.origMaker,
+    origName: editingOrigBall.origName,
+    maker: editingOrigBall.origMaker,
+    name: document.getElementById('editFieldName').value.trim(),
+    cover: document.getElementById('editFieldCover').value.trim(),
+    core: document.getElementById('editFieldCore').value.trim(),
+    rg: document.getElementById('editFieldRg').value.trim(),
+    drg: document.getElementById('editFieldDrg').value.trim(),
+    mb: document.getElementById('editFieldMb').value.trim() || 'N/A',
+    finish: document.getElementById('editFieldFinish').value.trim()
+  };
+
+  if (!payload.name) return showToast('ボール名を入力してください');
+  showToast('スプレッドシート「ボール一覧」を更新中...');
+
+  try {
+    const json = await gasPost(payload);
+    if (json.status === 'ok') {
+      if (json.ballMaster) state.ballMaster = json.ballMaster;
+      const myIdx = state.balls.findIndex(item => item.name === editingOrigBall.origName);
+      if (myIdx >= 0) {
+        state.balls[myIdx] = {
+          name: payload.name,
+          brand: payload.maker,
+          cover: payload.cover,
+          core: payload.core,
+          rg: payload.rg + (payload.drg ? ' / ' + payload.drg : ''),
+          finish: payload.finish
+        };
+      }
+      saveLocalState();
+      initBallMasterUI();
+      renderBallDb();
+      renderBallSelect();
+      if (myIdx >= 0) syncCurrentPlayerToSheet();
+      showToast('✅ スプレッドシートのボール情報を修正しました！');
+    } else {
+      showToast('❌ 更新エラー: ' + (json.message || '失敗'));
+    }
+  } catch (e) {
+    showToast('❌ 通信エラーが発生しました（Apps Scriptの更新デプロイを確認してください）');
+  }
+}
+
+/* プレイヤー管理・個人別マイボール同期 */
+function parsePlayerBalls(p) {
+  if (!p || !p.ballsJson) return [];
+  try {
+    const arr = typeof p.ballsJson === 'string' ? JSON.parse(p.ballsJson) : p.ballsJson;
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function renderPlayersDropdown() {
+  const sel = document.getElementById('playerSelect');
+  if (!sel) return;
+  const list = [...(state.players || [])].filter(p => p && p.player).sort((a, b) => String(a.player).localeCompare(String(b.player), 'ja'));
+  sel.innerHTML = '<option value="">-- プレイヤーを選択 --</option>' +
+    list.map(p => {
+      const cnt = parsePlayerBalls(p).length;
+      const name = String(p.player);
+      return '<option value="' + name.replace(/"/g, '&quot;') + '"' + (state.player === name ? ' selected' : '') + '>' +
+        name + ' (マイボール ' + cnt + '個)</option>';
+    }).join('');
+  if (state.player && !list.some(p => String(p.player) === state.player)) {
+    sel.innerHTML += '<option value="' + state.player.replace(/"/g, '&quot;') + '" selected>' + state.player + '</option>';
+  }
+  const ownerLbl = document.getElementById('myBallOwnerLabel');
+  if (ownerLbl) ownerLbl.textContent = state.player ? (state.player + ' さんのマイボール') : 'プレイヤー未選択';
+}
+
+function onSelectPlayer(name) {
+  state.player = name || '';
+  document.getElementById('metaPlayer').value = state.player;
+  const found = (state.players || []).find(p => String(p.player) === state.player);
+  if (found) {
+    state.balls = parsePlayerBalls(found);
+    state.hdcp = Number(found.hdcp || 0);
+    document.getElementById('metaHdcp').value = state.hdcp;
+  } else {
+    state.balls = [];
+  }
+  saveLocalState();
+  renderPlayersDropdown();
+  renderBallDb();
+  renderAll();
+  if (state.player) showToast('👤 ' + state.player + ' に切り替えました（マイボール ' + state.balls.length + '個）');
+}
+
+function openPlayerModal() {
+  document.getElementById('newPlayerName').value = '';
+  document.getElementById('newPlayerHdcp').value = '0';
+  openModal('playerModal');
+}
+
+async function registerNewPlayer() {
+  const name = document.getElementById('newPlayerName').value.trim();
+  const hdcp = Number(document.getElementById('newPlayerHdcp').value || 0);
+  if (!name) return showToast('プレイヤー名を入力してください');
+
+  const existing = (state.players || []).find(p => String(p.player) === name);
+  const balls = existing ? parsePlayerBalls(existing) : [];
+
+  state.player = name;
+  state.hdcp = hdcp;
+  state.balls = balls;
+  document.getElementById('metaPlayer').value = name;
+  document.getElementById('metaHdcp').value = hdcp;
+  closeModal('playerModal');
+  showToast('👤 「' + name + '」を登録中...');
+
+  await syncCurrentPlayerToSheet(true);
+  renderPlayersDropdown();
+  renderBallDb();
+  renderAll();
+}
+
+async function syncCurrentPlayerToSheet(showSuccessToast) {
+  const name = (state.player || '').trim();
+  if (!name) return;
+  try {
+    const json = await gasPost({
+      action: 'savePlayer',
+      player: name,
+      hdcp: Number(document.getElementById('metaHdcp').value || state.hdcp || 0),
+      ballsJson: JSON.stringify(state.balls || [])
+    });
+    if (json.status === 'ok' && json.players) {
+      state.players = json.players;
+      saveLocalState();
+      renderPlayersDropdown();
+      if (showSuccessToast) showToast('✅ プレイヤー「' + name + '」を登録・同期しました！');
+    }
+  } catch (e) {
+    if (showSuccessToast) showToast('⚠️ 端末内に保存しました（通信エラー）');
+  }
+}
+
+function renderBallDb() {
+  const ownerLbl = document.getElementById('myBallOwnerLabel');
+  if (ownerLbl) ownerLbl.textContent = state.player ? (state.player + ' さんのマイボール') : 'プレイヤー未選択';
+  const listEl = document.getElementById('myBallList');
+  if (!state.player) {
+    listEl.innerHTML = '<div style="font-size:12px; color:var(--accent); padding:8px 0;">⚠️ 先にプレイヤーを選択または新規登録してください（個人別にマイボールが保存されます）</div>';
+    return;
+  }
+  if (!state.balls || !state.balls.length) {
+    listEl.innerHTML = '<div style="font-size:12px; color:var(--text-dim); padding:8px 0;">まだマイボールが登録されていません。上の検索から追加してください。</div>';
+    return;
+  }
+  listEl.innerHTML = state.balls.map((b, i) =>
+    '<div style="padding:8px 0; border-bottom:1px solid var(--surface2); display:flex; justify-content:space-between; align-items:center;">' +
+      '<div>' +
+        '<div style="font-weight:800; font-size:13px;">' + b.name + ' <span style="font-size:11px; color:var(--primary);">[' + b.brand + ']</span></div>' +
+        '<div style="font-size:11px; color:var(--text-dim);">カバー: ' + (b.cover || '-') + ' / コア: ' + (b.core || '-') + ' / RG: ' + (b.rg || '-') + ' / ' + (b.finish || '-') + '</div>' +
+      '</div>' +
+      '<button type="button" class="btn-sm" onclick="removeBall(' + i + ')">削除</button>' +
+    '</div>'
+  ).join('');
+}
+
+function removeBall(idx) {
+  state.balls.splice(idx, 1);
+  saveLocalState();
+  renderBallDb();
+  renderBallSelect();
+  syncCurrentPlayerToSheet();
+}
+
+/* センター一覧スプレッドシート連携（地方フィルタ＆あいまい検索） */
+const REGION_MAP = [
+  { name: '関西', prefs: ['大阪府','兵庫県','京都府','滋賀県','奈良県','和歌山県'] },
+  { name: '関東', prefs: ['東京都','神奈川県','埼玉県','千葉県','茨城県','栃木県','群馬県'] },
+  { name: '中部', prefs: ['愛知県','静岡県','岐阜県','三重県','新潟県','富山県','石川県','福井県','山梨県','長野県'] },
+  { name: '北海道', prefs: ['北海道'] },
+  { name: '東北', prefs: ['青森県','岩手県','宮城県','秋田県','山形県','福島県'] },
+  { name: '中国', prefs: ['広島県','岡山県','山口県','鳥取県','島根県'] },
+  { name: '四国', prefs: ['香川県','愛媛県','徳島県','高知県'] },
+  { name: '九州・沖縄', prefs: ['福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'] }
+];
+
+const ALL_PREFS = REGION_MAP.flatMap(r => r.prefs);
+
+function prefToRegion(pref) {
+  const hit = REGION_MAP.find(r => r.prefs.includes(pref));
+  return hit ? hit.name : 'その他';
+}
+
+function normalizeCenterRow(c) {
+  const name = String(c['センター名'] || c.name || '').trim();
+  const area = String(c['市区町村・エリア'] || c.area || '').trim();
+  let pref = String(c['都道府県'] || c.pref || '').trim();
+  if (!pref && area) {
+    pref = ALL_PREFS.find(p => area.startsWith(p)) || '';
+  }
+  const region = prefToRegion(pref);
+  const note = String(c['メモ'] || c.note || '').trim();
+  return { region, pref, name, area, note };
+}
+
+function renderCentersDropdown() {
+  const list = (state.centers || []).map(normalizeCenterRow).filter(c => c.name);
+  const regSel = document.getElementById('centerRegionFilter');
+  const prevReg = regSel ? (regSel.value || 'ALL') : 'ALL';
+
+  if (regSel) {
+    const regCounts = {};
+    list.forEach(c => { regCounts[c.region] = (regCounts[c.region] || 0) + 1; });
+    const regions = REGION_MAP.map(r => r.name).filter(rn => regCounts[rn]);
+    if (regCounts['その他']) regions.push('その他');
+    regSel.innerHTML = '<option value="ALL">すべての地方 (' + list.length + '件)</option>' +
+      regions.map(rn => '<option value="' + rn + '"' + (prevReg === rn ? ' selected' : '') + '>' + rn + ' (' + regCounts[rn] + '件)</option>').join('');
+  }
+
+  const activeReg = regSel ? regSel.value : 'ALL';
+  const query = toHiragana((document.getElementById('centerSearchInput') && document.getElementById('centerSearchInput').value || '').trim());
+  const filtered = list.filter(c => {
+    if (activeReg !== 'ALL' && c.region !== activeReg) return false;
+    if (!query) return true;
+    return toHiragana(c.name + ' ' + c.region + ' ' + c.pref + ' ' + c.area).includes(query);
+  }).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+  const sel = document.getElementById('centerSelect');
+  sel.innerHTML = '<option value="">-- センターを選択 (' + filtered.length + '件) --</option>' +
+    filtered.map(c => {
+      const sub = [c.pref, c.area].filter(Boolean).join(' ');
+      return '<option value="' + c.name.replace(/"/g, '&quot;') + '"' + (state.center === c.name ? ' selected' : '') + '>' +
+        c.name + (sub ? ' (' + sub + ')' : '') + '</option>';
+    }).join('');
+}
+
+function onSelectCenterDropdown(val) {
+  if (!val) return;
+  document.getElementById('metaCenter').value = val;
+  saveLocalState();
+}
+
+async function registerNewCenterToSheet() {
+  const name = document.getElementById('metaCenter').value.trim();
+  if (!name) return showToast('センター名を入力してください');
+  const normList = (state.centers || []).map(normalizeCenterRow);
+  if (!normList.some(c => c.name === name)) {
+    state.centers.unshift({ '都道府県': '', 'センター名': name, '市区町村・エリア': '', 'メモ': '' });
+    renderCentersDropdown();
+    saveLocalState();
+  }
+  showToast('スプレッドシート「センター一覧」へ登録中...');
+  try {
+    const json = await gasPost({ action: 'addCenter', pref: '', name: name, area: '', note: '' });
+    if (json.status === 'ok' && json.centers) {
+      state.centers = json.centers;
+      renderCentersDropdown();
+      saveLocalState();
+      showToast('✅ 「' + name + '」をセンター一覧に登録しました');
+    }
+  } catch (e) {
+    showToast('端末リストに保存しました');
+  }
+}
+
+function searchNearbyCenters() {
+  if (!navigator.geolocation) return showToast('位置情報に対応していません');
+  const resDiv = document.getElementById('nearbyResults');
+  resDiv.innerHTML = '<span style="font-size:11px; color:var(--primary);">📡 GPS取得中...</span>';
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const { latitude, longitude } = pos.coords;
+    try {
+      const query = '[out:json][timeout:10];node(around:12000,' + latitude + ',' + longitude + ')["leisure"="bowling_alley"];out;';
+      const r = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query));
+      const data = await r.json();
+      if (!data.elements || !data.elements.length) {
+        resDiv.innerHTML = '<span style="font-size:11px; color:var(--text-dim);">見つかりませんでした</span>';
+        return;
+      }
+      const list = data.elements.map(el => {
+        const name = (el.tags && (el.tags['name:ja'] || el.tags.name)) || 'ボウリング場';
+        const d = calcDistKm(latitude, longitude, el.lat, el.lon);
+        return { name, d };
+      }).sort((a, b) => a.d - b.d).slice(0, 6);
+
+      resDiv.innerHTML = list.map(item =>
+        '<button type="button" class="chip" onclick="selectNearbyCenter(\'' + item.name.replace(/'/g, "\\'") + '\')">📍 ' + item.name + ' (' + item.d.toFixed(1) + 'km)</button>'
+      ).join('');
+    } catch (e) {
+      resDiv.innerHTML = '<span style="font-size:11px; color:var(--split);">検索失敗</span>';
+    }
+  }, () => { resDiv.innerHTML = '<span style="font-size:11px; color:var(--split);">位置情報許可が必要です</span>'; });
+}
+
+function selectNearbyCenter(name) {
+  document.getElementById('metaCenter').value = name;
+  saveLocalState();
+  showToast('「' + name + '」を入力しました');
+}
+
+function calcDistKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function openGoogleMaps() {
+  const c = document.getElementById('metaCenter').value.trim() || 'ボウリング場';
+  window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(c), '_blank');
+}
+
+/* コンディション自動区分判定＆保存済み選択 */
+function classifyConditionClient(lengthStr, ratioStr) {
+  const lenMatch = String(lengthStr).match(/(\d+(?:\.\d+)?)/);
+  const len = lenMatch ? parseFloat(lenMatch[1]) : 0;
+  let ratioVal = 99;
+  const rStr = String(ratioStr);
+  if (rStr.includes(':')) {
+    const parts = rStr.split(':').map(s => parseFloat(s.replace(/[^0-9.]/g, '')));
+    if (parts.length === 2 && parts[0] > 0 && parts[1] > 0) {
+      ratioVal = Math.max(parts[0], parts[1]) / Math.min(parts[0], parts[1]);
+    }
+  } else {
+    const num = parseFloat(rStr.replace(/[^0-9.]/g, ''));
+    if (!isNaN(num) && num > 0) ratioVal = num;
+  }
+  const isSport = ratioVal <= 3.0;
+  if (!len && !rStr) return '';
+  if (!len) return isSport ? 'スポコンM' : 'ミドル';
+  if (len <= 37) return isSport ? 'スポコンS' : 'ショート';
+  if (len <= 42) return isSport ? 'スポコンM' : 'ミドル';
+  return isSport ? 'スポコンL' : 'ロング';
+}
+
+function autoClassifyCondition() {
+  const l = document.getElementById('condLength').value;
+  const r = document.getElementById('condRatio').value;
+  const autoType = classifyConditionClient(l, r);
+  if (autoType) document.getElementById('condType').value = autoType;
+  updateCondBadge();
+}
+
+function updateCondBadge() {
+  const n = document.getElementById('condName').value;
+  const t = document.getElementById('condType').value;
+  const l = document.getElementById('condLength').value;
+  const parts = [n, l, t ? '[' + t + ']' : ''].filter(Boolean);
+  document.getElementById('condBadge').textContent = parts.length ? (parts.join(' ') + ' ▾') : '未設定 ▾';
+}
+
+function renderSavedConditionsDropdown() {
+  const sel = document.getElementById('savedCondSelect');
+  sel.innerHTML = '<option value="">-- 過去に解析・保存したパターンから自動貼り付け --</option>' +
+    state.savedConditions.map((c, i) =>
+      '<option value="' + i + '">' + (c.patternName || 'パターン') + ' (' + (c.length || '-') + ' / ' + (c.type || '-') + ')</option>'
+    ).join('');
+}
+
+function applySavedCondition(idxStr) {
+  if (idxStr === '') return;
+  const c = state.savedConditions[Number(idxStr)];
+  if (!c) return;
+  document.getElementById('condName').value = c.patternName || '';
+  document.getElementById('condType').value = c.type || '';
+  document.getElementById('condLength').value = c.length || '';
+  document.getElementById('condVolume').value = c.volume || '';
+  document.getElementById('condRatio').value = c.ratio || '';
+  document.getElementById('condNote').value = c.note || '';
+  updateCondBadge();
+  saveLocalState();
+  showToast('📋 保存済みコンディションを貼り付けました');
+}
+
+function handleConditionPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('condUploadStatus');
+  statusEl.textContent = '⏳ 画像を圧縮してAI解析中...';
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.createElement('canvas');
+      const maxW = 1024;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+      const prev = document.getElementById('condPreviewImg');
+      prev.src = dataUrl;
+      prev.style.display = 'block';
+
+      try {
+        const json = await gasPost({
+          action: 'analyzeCondition',
+          center: document.getElementById('metaCenter').value,
+          imageBase64: dataUrl
+        });
+        if (json.status === 'ok') {
+          if (json.parsed) {
+            if (json.parsed.patternName) document.getElementById('condName').value = json.parsed.patternName;
+            if (json.parsed.length) document.getElementById('condLength').value = json.parsed.length;
+            if (json.parsed.volume) document.getElementById('condVolume').value = json.parsed.volume;
+            if (json.parsed.ratio) document.getElementById('condRatio').value = json.parsed.ratio;
+            if (json.parsed.type) document.getElementById('condType').value = json.parsed.type;
+            else autoClassifyCondition();
+            if (json.parsed.note) document.getElementById('condNote').value = json.parsed.note;
+          }
+          if (json.conditions) {
+            state.savedConditions = json.conditions;
+            renderSavedConditionsDropdown();
+          }
+          updateCondBadge();
+          saveLocalState();
+          statusEl.textContent = '✅ AI解析＆スプレッドシート保存が完了しました！';
+        } else {
+          statusEl.textContent = '❌ エラー: ' + (json.message || '解析失敗');
+        }
+      } catch (err) {
+        statusEl.textContent = '❌ 通信エラーが発生しました（Apps Scriptの更新デプロイを確認してください）';
+      }
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* スコアシート写真AI読取 */
+function normalizeAiGame(aiGame) {
+  const frames = [];
+  const srcFrames = Array.isArray(aiGame && aiGame.frames) ? aiGame.frames : [];
+  for (let f = 0; f < 10; f++) {
+    const sf = srcFrames[f] || {};
+    const rawRolls = Array.isArray(sf.rolls) ? sf.rolls : [];
+    const rawSplits = Array.isArray(sf.splits) ? sf.splits : [];
+    const rolls = [];
+    const leaves = [];
+    const splits = [];
+    if (f < 9) {
+      if (rawRolls.length > 0) {
+        const r1 = Math.max(0, Math.min(10, Number(rawRolls[0] || 0)));
+        rolls.push(r1);
+        leaves.push([]);
+        splits.push(Boolean(rawSplits[0]) && r1 < 10);
+        if (r1 < 10 && rawRolls.length > 1) {
+          const r2 = Math.max(0, Math.min(10 - r1, Number(rawRolls[1] || 0)));
+          rolls.push(r2);
+          leaves.push([]);
+          splits.push(false);
+        }
+      }
+    } else {
+      if (rawRolls.length > 0) {
+        const r1 = Math.max(0, Math.min(10, Number(rawRolls[0] || 0)));
+        rolls.push(r1);
+        leaves.push([]);
+        splits.push(Boolean(rawSplits[0]) && r1 < 10);
+        if (rawRolls.length > 1) {
+          const max2 = r1 === 10 ? 10 : (10 - r1);
+          const r2 = Math.max(0, Math.min(max2, Number(rawRolls[1] || 0)));
+          rolls.push(r2);
+          leaves.push([]);
+          splits.push(r1 === 10 && Boolean(rawSplits[1]) && r2 < 10);
+          if (rawRolls.length > 2 && (r1 === 10 || r1 + r2 === 10)) {
+            const isFresh3 = (r1 === 10 && r2 === 10) || (r1 < 10 && r1 + r2 === 10);
+            const max3 = isFresh3 ? 10 : (10 - r2);
+            const r3 = Math.max(0, Math.min(max3, Number(rawRolls[2] || 0)));
+            rolls.push(r3);
+            leaves.push([]);
+            splits.push(isFresh3 && Boolean(rawSplits[2]) && r3 < 10);
+          }
+        }
+      }
+    }
+    frames.push({ rolls, leaves, splits });
+  }
+  return {
+    frames,
+    ball: (state.games[0] && state.games[0].ball) || '',
+    stance: (state.games[0] && state.games[0].stance) || '28枚目',
+    target: (state.games[0] && state.games[0].target) || '16枚目'
+  };
+}
+
+function handleScoreSheetPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('scorePhotoStatus');
+  const suggestEl = document.getElementById('scorePhotoCenterSuggest');
+  const prevEl = document.getElementById('scorePhotoPreview');
+  statusEl.textContent = '⏳ スコアシート画像を最適化してAIで読み取り中...（数秒かかります）';
+  if (suggestEl) { suggestEl.style.display = 'none'; suggestEl.innerHTML = ''; }
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.createElement('canvas');
+      const maxW = 1400;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+      if (prevEl) {
+        prevEl.src = dataUrl;
+        prevEl.style.display = 'block';
+      }
+
+      try {
+        const json = await gasPost({ action: 'analyzeScoreSheet', imageBase64: dataUrl });
+        if (json.status !== 'ok' || !json.parsed) {
+          statusEl.textContent = '❌ 読み取りエラー: ' + (json.message || '解析に失敗しました');
+          return;
+        }
+        const p = json.parsed;
+        if (p.date && /^\d{4}-\d{2}-\d{2}$/.test(p.date)) {
+          document.getElementById('metaDate').value = p.date;
+        }
+        if (p.center) {
+          const detectedCenter = String(p.center).trim();
+          const normCenters = (state.centers || []).map(normalizeCenterRow);
+          const matched = normCenters.find(c => c.name === detectedCenter || toHiragana(c.name).includes(toHiragana(detectedCenter)) || toHiragana(detectedCenter).includes(toHiragana(c.name)));
+          document.getElementById('metaCenter').value = matched ? matched.name : detectedCenter;
+          renderCentersDropdown();
+          if (!matched && suggestEl) {
+            suggestEl.style.display = 'block';
+            suggestEl.innerHTML = '<div style="background:rgba(245,158,11,0.12); border:1px solid var(--accent); border-radius:8px; padding:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
+              '<span style="font-size:11px; color:#fcd34d;">🏠 「' + detectedCenter + '」はセンター一覧に未登録です</span>' +
+              '<button type="button" class="btn-sm" style="border-color:var(--accent); color:#fcd34d;" onclick="registerNewCenterToSheet()">＋ センター一覧に登録</button>' +
+            '</div>';
+          }
+        }
+
+        const aiGames = Array.isArray(p.games) ? p.games : [];
+        if (!aiGames.length) {
+          statusEl.textContent = '⚠️ スコアのフレームを読み取れませんでした（写真が明るくて正面から写っているか確認してください）';
+          saveLocalState();
+          return;
+        }
+
+        const newGames = aiGames.map(normalizeAiGame);
+        const checkMsgs = newGames.map((g, idx) => {
+          const calc = calcFrameScores(g).current;
+          const rep = Number(aiGames[idx].reportedTotal || 0);
+          if (rep > 0 && calc !== rep) return 'G' + (idx + 1) + ':' + calc + '点(⚠️印字' + rep + ')';
+          return 'G' + (idx + 1) + ':' + calc + '点✅';
+        });
+
+        state.games = newGames;
+        state.activeGame = 0;
+        saveLocalState();
+        resetPinDeckForNextRoll();
+        renderAll();
+        statusEl.textContent = '✅ ' + newGames.length + 'ゲームを読み取りました！ [' + checkMsgs.join(' / ') + '] 内容を確認して「スコア登録」を押してください。';
+        showToast('📸 ' + newGames.length + 'ゲームを自動入力しました！');
+      } catch (err) {
+        statusEl.textContent = '❌ 通信エラーが発生しました';
+      }
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* スコア入力・計算・ランキング・CSV */
+function getCurrentGame() { return state.games[state.activeGame]; }
+
+function getCursor(game) {
+  for (let f = 0; f < 10; f++) {
+    const r = game.frames[f].rolls;
+    if (f < 9) {
+      if (r.length === 0) return { frame: f, roll: 0, standing: [1,2,3,4,5,6,7,8,9,10] };
+      if (r.length === 1 && r[0] < 10) return { frame: f, roll: 1, standing: game.frames[f].leaves[0] || [] };
+    } else {
+      if (r.length === 0) return { frame: 9, roll: 0, standing: [1,2,3,4,5,6,7,8,9,10] };
+      if (r.length === 1) return { frame: 9, roll: 1, standing: r[0] === 10 ? [1,2,3,4,5,6,7,8,9,10] : (game.frames[9].leaves[0] || []) };
+      if (r.length === 2 && (r[0] === 10 || r[0] + r[1] === 10)) {
+        const needFresh = (r[0] === 10 && r[1] === 10) || (r[0] + r[1] === 10);
+        return { frame: 9, roll: 2, standing: needFresh ? [1,2,3,4,5,6,7,8,9,10] : (game.frames[9].leaves[1] || []) };
+      }
+    }
+  }
+  return null;
+}
+
+function resetPinDeckForNextRoll() {
+  const cur = getCursor(getCurrentGame());
+  knockedPins = new Set(cur ? cur.standing : [1,2,3,4,5,6,7,8,9,10]);
+  renderPinDeck();
+}
+
+function togglePin(p) {
+  const cur = getCursor(getCurrentGame());
+  if (!cur || !cur.standing.includes(p)) return;
+  if (knockedPins.has(p)) knockedPins.delete(p);
+  else knockedPins.add(p);
+  renderPinDeck();
+}
+
+function presetLeave(leaveArr) {
+  const cur = getCursor(getCurrentGame());
+  if (!cur || cur.standing.length !== 10) return showToast('10本立っている投球のときのみ使用できます');
+  knockedPins = new Set(cur.standing.filter(p => !leaveArr.includes(p)));
+  renderPinDeck();
+}
+
+function isSplitLeave(pinsLeft) {
+  if (pinsLeft.length < 2 || pinsLeft.includes(1)) return false;
+  const cols = { 7:0, 4:1, 2:2, 8:2, 1:3, 5:3, 3:4, 9:4, 6:5, 10:6 };
+  const sorted = [...pinsLeft].sort((a, b) => cols[a] - cols[b]);
+  for (let i = 0; i < sorted.length - 1; i++) {
+    if (cols[sorted[i + 1]] - cols[sorted[i]] >= 2) return true;
+  }
+  return false;
+}
+
+function commitSelectedPins() {
+  const game = getCurrentGame();
+  const cur = getCursor(game);
+  if (!cur) return showToast('このゲームは終了しています');
+  const count = knockedPins.size;
+  const remaining = cur.standing.filter(p => !knockedPins.has(p));
+  const fr = game.frames[cur.frame];
+  fr.rolls.push(count);
+  fr.leaves.push(remaining);
+  fr.splits.push(cur.standing.length === 10 && isSplitLeave(remaining));
+  saveLocalState();
+  resetPinDeckForNextRoll();
+  renderAll();
+}
+
+function quickStrike() {
+  const cur = getCursor(getCurrentGame());
+  if (!cur || cur.standing.length < 10) return showToast('ストライクは10本ある時のみ入力できます');
+  knockedPins = new Set([1,2,3,4,5,6,7,8,9,10]);
+  commitSelectedPins();
+}
+
+function quickSpare() {
+  const cur = getCursor(getCurrentGame());
+  if (!cur || cur.standing.length === 10) return showToast('2投目の残ピンがある時に押してください');
+  knockedPins = new Set(cur.standing);
+  commitSelectedPins();
+}
+
+function quickGutter() {
+  const cur = getCursor(getCurrentGame());
+  if (!cur) return;
+  knockedPins = new Set();
+  commitSelectedPins();
+}
+
+function undoLastRoll() {
+  const game = getCurrentGame();
+  for (let f = 9; f >= 0; f--) {
+    if (game.frames[f].rolls.length > 0) {
+      game.frames[f].rolls.pop();
+      game.frames[f].leaves.pop();
+      game.frames[f].splits.pop();
+      saveLocalState();
+      resetPinDeckForNextRoll();
+      renderAll();
+      return;
+    }
+  }
+}
+
+function resetCurrentGame() {
+  if (!confirm('現在のゲームのスコアをリセットしますか？')) return;
+  state.games[state.activeGame] = createEmptyGame();
+  saveLocalState();
+  resetPinDeckForNextRoll();
+  renderAll();
+}
+
+function deleteCurrentGame() {
+  if (state.games.length <= 1) return showToast('最低1ゲームは残す必要があります');
+  if (!confirm('Game ' + (state.activeGame + 1) + ' を削除しますか？')) return;
+  state.games.splice(state.activeGame, 1);
+  if (state.activeGame >= state.games.length) state.activeGame = state.games.length - 1;
+  saveLocalState();
+  resetPinDeckForNextRoll();
+  renderAll();
+  showToast('Gameを削除しました');
+}
+
+function startNewSeries(skipConfirm) {
+  if (!skipConfirm && !confirm('現在の全ゲームのスコアをクリアして新しいシリーズを開始しますか？（プレイヤー名・センター・コンディションは保持されます）')) return;
+  state.games = [createEmptyGame(), createEmptyGame(), createEmptyGame()];
+  state.activeGame = 0;
+  saveLocalState();
+  resetPinDeckForNextRoll();
+  renderAll();
+  if (!skipConfirm) showToast('🆕 新しいシリーズを開始しました');
+}
+
+function hasAnyRolls(game) {
+  return game && Array.isArray(game.frames) && game.frames.some(fr => fr.rolls && fr.rolls.length > 0);
+}
+
+function calcFrameScores(game) {
+  const allRolls = [];
+  game.frames.forEach((f, idx) => f.rolls.forEach(r => allRolls.push({ pins: r, frame: idx })));
+  let rollIdx = 0, running = 0;
+  const totals = [];
+  for (let f = 0; f < 10; f++) {
+    const r = game.frames[f].rolls;
+    if (f < 9) {
+      if (r[0] === 10) {
+        if (allRolls[rollIdx + 1] && allRolls[rollIdx + 2]) {
+          running += 10 + allRolls[rollIdx + 1].pins + allRolls[rollIdx + 2].pins;
+          totals.push(running);
+        } else totals.push(null);
+        rollIdx += 1;
+      } else if (r.length === 2) {
+        if (r[0] + r[1] === 10) {
+          if (allRolls[rollIdx + 2]) {
+            running += 10 + allRolls[rollIdx + 2].pins;
+            totals.push(running);
+          } else totals.push(null);
+        } else {
+          running += r[0] + r[1];
+          totals.push(running);
+        }
+        rollIdx += 2;
+      } else { totals.push(null); rollIdx += r.length; }
+    } else {
+      if ((r[0] === 10 || (r[0] + (r[1] || 0) === 10)) && r.length === 3) {
+        running += r[0] + r[1] + r[2];
+        totals.push(running);
+      } else if (r.length === 2 && r[0] + r[1] < 10) {
+        running += r[0] + r[1];
+        totals.push(running);
+      } else totals.push(null);
+    }
+  }
+  return { totals, current: running };
+}
+
+function calcMaxScore(game) {
+  const clone = JSON.parse(JSON.stringify(game));
+  let cur = getCursor(clone);
+  while (cur) {
+    clone.frames[cur.frame].rolls.push(cur.standing.length);
+    clone.frames[cur.frame].leaves.push([]);
+    cur = getCursor(clone);
+  }
+  return calcFrameScores(clone).current;
+}
+
+function renderPinDeck() {
+  const cur = getCursor(getCurrentGame());
+  document.querySelectorAll('.pin-btn').forEach(btn => {
+    const p = Number(btn.dataset.pin);
+    const isStanding = cur ? cur.standing.includes(p) : false;
+    btn.classList.toggle('knocked', !isStanding || knockedPins.has(p));
+  });
+  document.getElementById('knockedCountLabel').textContent = knockedPins.size;
+  document.getElementById('activeFrameInfo').textContent = cur ? ((cur.frame + 1) + 'フレーム ' + (cur.roll + 1) + '投目') : 'ゲーム完了';
+}
+
+function renderAll() {
+  renderGameTabs();
+  renderBallSelect();
+  renderScorecard();
+}
+
+function renderGameTabs() {
+  const box = document.getElementById('gameTabs');
+  box.innerHTML = state.games.map((g, i) => {
+    const sc = calcFrameScores(g).current;
+    return '<button type="button" class="game-tab ' + (i === state.activeGame ? 'active' : '') + '" onclick="selectGame(' + i + ')">G' + (i + 1) + ' (' + sc + ')</button>';
+  }).join('') + '<button type="button" class="game-tab" onclick="addGame()">＋ G追加</button>';
+}
+
+function selectGame(idx) { state.activeGame = idx; resetPinDeckForNextRoll(); renderAll(); }
+function addGame() { state.games.push(createEmptyGame()); state.activeGame = state.games.length - 1; saveLocalState(); resetPinDeckForNextRoll(); renderAll(); }
+
+function renderBallSelect() {
+  const g = getCurrentGame();
+  const sel = document.getElementById('gameBallSelect');
+  sel.innerHTML = '<option value="">-- ボール選択 --</option>' +
+    state.balls.map(b => '<option value="' + b.name + '" ' + (g.ball === b.name ? 'selected' : '') + '>' + b.name + ' (' + b.brand + ')</option>').join('');
+  document.getElementById('gameStance').value = g.stance || '';
+  document.getElementById('gameTarget').value = g.target || '';
+  document.getElementById('ballSummaryLabel').textContent = g.ball ? (g.ball + ' (' + g.stance + '→' + g.target + ') ▾') : '未選択 ▾';
+}
+
+function updateGameMeta(key, val) { state.games[state.activeGame][key] = val; saveLocalState(); renderBallSelect(); }
+
+function formatRollSymbol(frameIdx, rollIdx, rolls, splits) {
+  const v = rolls[rollIdx];
+  if (v === undefined) return '';
+  if (frameIdx < 9) {
+    if (rollIdx === 0) return v === 10 ? 'X' : (v === 0 ? '-' : v);
+    if (rolls[0] + v === 10) return '/';
+    return v === 0 ? '-' : v;
+  } else {
+    if (rollIdx === 0) return v === 10 ? 'X' : (v === 0 ? '-' : v);
+    if (rollIdx === 1) {
+      if (rolls[0] === 10) return v === 10 ? 'X' : (v === 0 ? '-' : v);
+      return rolls[0] + v === 10 ? '/' : (v === 0 ? '-' : v);
+    }
+    if (rollIdx === 2) {
+      if (v === 10) return 'X';
+      if (rolls[1] !== 10 && rolls[0] + rolls[1] !== 10 && rolls[1] + v === 10) return '/';
+      return v === 0 ? '-' : v;
+    }
+  }
+  return v;
+}
+
+function renderScorecard() {
+  const g = getCurrentGame();
+  const cur = getCursor(g);
+  const { totals, current } = calcFrameScores(g);
+  document.getElementById('currentTotalScore').textContent = current;
+  document.getElementById('maxPossibleScore').textContent = calcMaxScore(g);
+
+  const grid = document.getElementById('framesGrid');
+  grid.innerHTML = g.frames.map((fr, idx) => {
+    const isTenth = idx === 9;
+    const isActive = cur && cur.frame === idx;
+    const cells = isTenth ? [0, 1, 2] : [0, 1];
+    const rollsHtml = cells.map(ri => {
+      const sym = formatRollSymbol(idx, ri, fr.rolls, fr.splits);
+      let cls = 'roll-cell';
+      if (sym === 'X') cls += ' strike';
+      if (sym === '/') cls += ' spare';
+      if (fr.splits[ri]) cls += ' split';
+      return '<div class="' + cls + '">' + sym + '</div>';
+    }).join('');
+    return '<div class="frame-box ' + (isTenth ? 'tenth' : '') + ' ' + (isActive ? 'active' : '') + '">' +
+      '<div class="frame-num">' + (idx + 1) + '</div>' +
+      '<div class="rolls-row">' + rollsHtml + '</div>' +
+      '<div class="frame-total">' + (totals[idx] !== null ? totals[idx] : '') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function computeSeriesStats(gamesList) {
+  let totalPins = 0, highGame = 0, strikes = 0, strikeChances = 0, spares = 0, spareChances = 0;
+  let tenPinChances = 0, tenPinConverted = 0, splits = 0, firstRolls = 0, punchOuts = 0, tenthPlayed = 0;
+
+  gamesList.forEach(g => {
+    const sc = calcFrameScores(g).current;
+    totalPins += sc;
+    if (sc > highGame) highGame = sc;
+
+    g.frames.forEach((fr, idx) => {
+      const r = fr.rolls || [];
+      const leaves = fr.leaves || [];
+      const sp = fr.splits || [];
+      if (idx < 9) {
+        if (r.length > 0) {
+          firstRolls++;
+          if (sp[0]) splits++;
+          strikeChances++;
+          if (r[0] === 10) strikes++;
+          else if (r.length === 2) {
+            spareChances++;
+            if (r[0] + r[1] === 10) spares++;
+            const left = leaves[0] || [];
+            if (left.length === 1 && left[0] === 10) {
+              tenPinChances++;
+              if (r[0] + r[1] === 10) tenPinConverted++;
+            }
+          }
+        }
+      } else {
+        if (r.length > 0) {
+          tenthPlayed++;
+          // 1投目（フルラック）
+          firstRolls++;
+          if (sp[0]) splits++;
+          strikeChances++;
+          if (r[0] === 10) {
+            strikes++;
+            // 2投目（1投目Xのためフルラック）
+            if (r.length >= 2) {
+              firstRolls++;
+              if (sp[1]) splits++;
+              strikeChances++;
+              if (r[1] === 10) {
+                strikes++;
+                // 3投目（2投目Xのためフルラック）
+                if (r.length >= 3) {
+                  firstRolls++;
+                  if (sp[2]) splits++;
+                  strikeChances++;
+                  if (r[2] === 10) strikes++;
+                }
+              } else if (r.length >= 3) {
+                spareChances++;
+                if (r[1] + r[2] === 10) spares++;
+                const left1 = leaves[1] || [];
+                if (left1.length === 1 && left1[0] === 10) {
+                  tenPinChances++;
+                  if (r[1] + r[2] === 10) tenPinConverted++;
+                }
+              }
+            }
+          } else if (r.length >= 2) {
+            spareChances++;
+            if (r[0] + r[1] === 10) spares++;
+            const left0 = leaves[0] || [];
+            if (left0.length === 1 && left0[0] === 10) {
+              tenPinChances++;
+              if (r[0] + r[1] === 10) tenPinConverted++;
+            }
+            // 3投目（1-2投目スペアのためフルラック）
+            if (r[0] + r[1] === 10 && r.length >= 3) {
+              firstRolls++;
+              if (sp[2]) splits++;
+              strikeChances++;
+              if (r[2] === 10) strikes++;
+            }
+          }
+          if (r.length === 3 && r[0] === 10 && r[1] === 10 && r[2] === 10) {
+            punchOuts++;
+          }
+        }
+      }
+    });
+  });
+
+  const avg = gamesList.length ? (totalPins / gamesList.length).toFixed(1) : '0.0';
+  const strRate = strikeChances ? Math.round((strikes / strikeChances) * 100) + '%' : '0%';
+  const sprRate = spareChances ? Math.round((spares / spareChances) * 100) + '%' : '0%';
+  const tenRate = tenPinChances ? Math.round((tenPinConverted / tenPinChances) * 100) + '%' : '0%';
+  const splRate = firstRolls ? Math.round((splits / firstRolls) * 100) + '%' : '0%';
+  const poRate = tenthPlayed ? Math.round((punchOuts / tenthPlayed) * 100) + '%' : '0%';
+  return { totalPins, highGame, avg, strRate, sprRate, tenRate, splRate, poRate };
+}
+
+function aggregateRecordsStats(recordsList) {
+  let totalGames = 0, totalScratch = 0, totalHdcp = 0, highGame = 0;
+  let strWeighted = 0, sprWeighted = 0, tenWeighted = 0, splWeighted = 0, poWeighted = 0;
+  let allParsedGames = [];
+  let hasAllGamesJson = recordsList.length > 0;
+
+  recordsList.forEach(r => {
+    const gc = Math.max(1, Number(r.gamesCount || 1));
+    totalGames += gc;
+    totalScratch += Number(r.scratchTotal || 0);
+    totalHdcp += Number(r.totalWithHdcp || 0);
+    highGame = Math.max(highGame, Number(r.highGame || 0));
+    strWeighted += parsePct(r.strikeRate) * gc;
+    sprWeighted += parsePct(r.spareRate) * gc;
+    tenWeighted += parsePct(r.tenPinRate) * gc;
+    splWeighted += parsePct(r.splitRate) * gc;
+    poWeighted += parsePct(r.punchOutRate) * gc;
+
+    try {
+      const gs = typeof r.gamesJson === 'string' ? JSON.parse(r.gamesJson) : (r.gamesJson || []);
+      if (Array.isArray(gs) && gs.length > 0 && gs[0] && Array.isArray(gs[0].frames)) {
+        allParsedGames = allParsedGames.concat(gs);
+      } else {
+        hasAllGamesJson = false;
+      }
+    } catch (e) {
+      hasAllGamesJson = false;
+    }
+  });
+
+  if (hasAllGamesJson && allParsedGames.length > 0) {
+    const exact = computeSeriesStats(allParsedGames);
+    return {
+      gamesCount: allParsedGames.length,
+      totalPins: exact.totalPins,
+      highGame: exact.highGame,
+      avg: exact.avg,
+      strRate: exact.strRate,
+      sprRate: exact.sprRate,
+      tenRate: exact.tenRate,
+      splRate: exact.splRate,
+      poRate: exact.poRate
+    };
+  }
+
+  const avg = totalGames ? (totalScratch / totalGames).toFixed(1) : '0.0';
+  return {
+    gamesCount: totalGames,
+    totalPins: totalScratch,
+    highGame: highGame,
+    avg: avg,
+    strRate: totalGames ? Math.round(strWeighted / totalGames) + '%' : '0%',
+    sprRate: totalGames ? Math.round(sprWeighted / totalGames) + '%' : '0%',
+    tenRate: totalGames ? Math.round(tenWeighted / totalGames) + '%' : '0%',
+    splRate: totalGames ? Math.round(splWeighted / totalGames) + '%' : '0%',
+    poRate: totalGames ? Math.round(poWeighted / totalGames) + '%' : '0%'
+  };
+}
+
+function renderStats() {
+  const allRecords = getAllHistoryRecords();
+  const playerSel = document.getElementById('statsPlayerSelect');
+  const modeSel = document.getElementById('statsModeSelect');
+  const monthWrap = document.getElementById('statsMonthWrap');
+  const monthSel = document.getElementById('statsMonthSelect');
+  const noteEl = document.getElementById('statsSummaryNote');
+  const chartTitle = document.getElementById('statsChartTitle');
+  const chartEl = document.getElementById('seriesBarChart');
+
+  // プレイヤー候補を「Playersシート＋履歴登場プレイヤー＋現在選択中」から構築
+  const playerSet = new Set();
+  if (state.player) playerSet.add(state.player);
+  (state.players || []).forEach(p => { if (p && p.player) playerSet.add(String(p.player)); });
+  allRecords.forEach(r => { if (r && r.player) playerSet.add(String(r.player)); });
+  const players = [...playerSet].sort((a, b) => a.localeCompare(b, 'ja'));
+
+  const prevPlayer = playerSel.value;
+  playerSel.innerHTML = players.length
+    ? players.map(p => '<option value="' + p.replace(/"/g, '&quot;') + '">' + p + '</option>').join('')
+    : '<option value="">（登録データなし）</option>';
+  if (prevPlayer && players.includes(prevPlayer)) playerSel.value = prevPlayer;
+  else if (state.player && players.includes(state.player)) playerSel.value = state.player;
+
+  const targetPlayer = playerSel.value;
+  const mode = modeSel.value;
+
+  if (mode === 'current') {
+    monthWrap.style.display = 'none';
+    const playedGames = state.games.filter(hasAnyRolls);
+    const st = computeSeriesStats(playedGames);
+    noteEl.textContent = '現在入力中のシリーズ（入力済み ' + playedGames.length + 'G）';
+    renderStatsBoxes({ gamesCount: playedGames.length, ...st });
+    chartTitle.textContent = '📈 ゲーム別スコア推移（入力中）';
+    chartEl.innerHTML = state.games.map((g, i) => {
+      const sc = calcFrameScores(g).current;
+      const pct = Math.min(100, Math.round((sc / 300) * 100));
+      return '<div style="margin-bottom:8px;">' +
+        '<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:2px;">' +
+        '<span>Game ' + (i + 1) + ' (' + (g.ball || 'ボール未指定') + ')</span><strong>' + sc + '</strong></div>' +
+        '<div style="background:var(--bg); height:10px; border-radius:999px; overflow:hidden;">' +
+        '<div style="background:var(--primary); width:' + pct + '%; height:100%;"></div></div></div>';
+    }).join('');
+    return;
+  }
+
+  const playerRecords = allRecords.filter(r => String(r.player || 'ゲスト') === targetPlayer);
+  const months = [...new Set(playerRecords.map(r => formatDateStr(r.date).slice(0, 7)).filter(m => /^\d{4}-\d{2}$/.test(m)))].sort().reverse();
+
+  if (mode === 'month') {
+    monthWrap.style.display = 'block';
+    const prevMonth = monthSel.value;
+    monthSel.innerHTML = months.length
+      ? months.map(m => '<option value="' + m + '">' + m + '</option>').join('')
+      : '<option value="">データなし</option>';
+    if (prevMonth && months.includes(prevMonth)) monthSel.value = prevMonth;
+    const targetMonth = monthSel.value;
+    const monthRecords = playerRecords.filter(r => formatDateStr(r.date).slice(0, 7) === targetMonth);
+    const st = aggregateRecordsStats(monthRecords);
+    noteEl.textContent = targetPlayer + ' さん / ' + (targetMonth || '-') + '（' + monthRecords.length + 'シリーズ・計' + st.gamesCount + 'G）';
+    renderStatsBoxes(st);
+    chartTitle.textContent = '📈 ' + (targetMonth || '') + ' のシリーズ別アベレージ推移';
+    if (!monthRecords.length) {
+      chartEl.innerHTML = '<div style="font-size:12px; color:var(--text-dim);">この月の登録データがありません。</div>';
+    } else {
+      const sortedAsc = [...monthRecords].sort((a, b) => formatDateStr(a.date).localeCompare(formatDateStr(b.date)));
+      chartEl.innerHTML = sortedAsc.map(r => {
+        const ave = Number(r.average || 0);
+        const pct = Math.min(100, Math.round((ave / 300) * 100));
+        return '<div style="margin-bottom:8px;">' +
+          '<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:2px;">' +
+          '<span>' + formatDateStr(r.date) + ' ' + (r.center || '') + ' (' + (r.gamesCount || 0) + 'G)</span><strong>' + ave + ' AVE</strong></div>' +
+          '<div style="background:var(--bg); height:10px; border-radius:999px; overflow:hidden;">' +
+          '<div style="background:var(--primary); width:' + pct + '%; height:100%;"></div></div></div>';
+      }).join('');
+    }
+    return;
+  }
+
+  // mode === 'all'（個人全体・通算）
+  monthWrap.style.display = 'none';
+  const st = aggregateRecordsStats(playerRecords);
+  noteEl.textContent = targetPlayer + ' さん / 通算（' + playerRecords.length + 'シリーズ・計' + st.gamesCount + 'G）';
+  renderStatsBoxes(st);
+  chartTitle.textContent = '📈 月別アベレージ推移（' + targetPlayer + ' さん）';
+  if (!months.length) {
+    chartEl.innerHTML = '<div style="font-size:12px; color:var(--text-dim);">まだ登録データがありません。スコアを登録すると個人スタッツが集計されます。</div>';
+  } else {
+    chartEl.innerHTML = months.map(m => {
+      const mRecs = playerRecords.filter(r => formatDateStr(r.date).slice(0, 7) === m);
+      const mst = aggregateRecordsStats(mRecs);
+      const ave = Number(mst.avg || 0);
+      const pct = Math.min(100, Math.round((ave / 300) * 100));
+      return '<div style="margin-bottom:8px;">' +
+        '<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:2px;">' +
+        '<span>' + m + ' (' + mst.gamesCount + 'G / HI:' + mst.highGame + ')</span><strong>' + ave + ' AVE</strong></div>' +
+        '<div style="background:var(--bg); height:10px; border-radius:999px; overflow:hidden;">' +
+        '<div style="background:var(--primary); width:' + pct + '%; height:100%;"></div></div></div>';
+    }).join('');
+  }
+}
+
+function renderStatsBoxes(st) {
+  document.getElementById('statsGrid').innerHTML =
+    '<div class="stat-box"><div class="stat-val">' + (st.gamesCount || 0) + 'G</div><div class="stat-lbl">ゲーム数</div></div>' +
+    '<div class="stat-box"><div class="stat-val">' + (st.avg || '0.0') + '</div><div class="stat-lbl">アベレージ</div></div>' +
+    '<div class="stat-box"><div class="stat-val">' + (st.highGame || 0) + '</div><div class="stat-lbl">ハイスコア</div></div>' +
+    '<div class="stat-box"><div class="stat-val">' + (st.totalPins || 0) + '</div><div class="stat-lbl">スクラッチ合計</div></div>' +
+    '<div class="stat-box"><div class="stat-val">' + (st.strRate || '0%') + '</div><div class="stat-lbl">ストライク率</div></div>' +
+    '<div class="stat-box"><div class="stat-val">' + (st.sprRate || '0%') + '</div><div class="stat-lbl">スペア率</div></div>' +
+    '<div class="stat-box"><div class="stat-val">' + (st.tenRate || '0%') + '</div><div class="stat-lbl">10ピンカバー率</div></div>' +
+    '<div class="stat-box"><div class="stat-val">' + (st.splRate || '0%') + '</div><div class="stat-lbl">スプリット率</div></div>' +
+    '<div class="stat-box"><div class="stat-val">' + (st.poRate || '0%') + '</div><div class="stat-lbl">パンチアウト率</div></div>';
+}
+
+function setSaveButtonsLoading(loading) {
+  const headerBtn = document.getElementById('btnHeaderSaveSeries');
+  const mainBtn = document.getElementById('btnMainSaveSeries');
+  const isEdit = editingScoreRowNumber !== null;
+  if (headerBtn) {
+    headerBtn.disabled = loading;
+    headerBtn.textContent = loading ? '⏳ 保存中...' : (isEdit ? '💾 修正保存' : '💾 スコア登録');
+  }
+  if (mainBtn) {
+    mainBtn.disabled = loading;
+    mainBtn.textContent = loading ? '⏳ スプレッドシートへ保存中...' : (isEdit ? '💾 この修正内容を上書き保存する' : '💾 このシリーズのスコアを登録・共有する');
+  }
+}
+
+function cancelEditScoreMode() {
+  editingScoreRowNumber = null;
+  const banner = document.getElementById('editModeBanner');
+  if (banner) banner.style.display = 'none';
+  setSaveButtonsLoading(false);
+  startNewSeries(true);
+  showToast('編集モードを終了しました');
+}
+
+async function saveAndSyncSeries() {
+  if (isSyncingSeries) return;
+  saveLocalState();
+  const playedGames = state.games.filter(hasAnyRolls);
+  if (!playedGames.length) {
+    return showToast('スコアが入力されているゲームがありません');
+  }
+  const skippedCount = state.games.length - playedGames.length;
+  const st = computeSeriesStats(playedGames);
+  const gCount = playedGames.length;
+  const totalHdcp = st.totalPins + (state.hdcp * gCount);
+
+  const recordObj = {
+    date: state.date,
+    player: state.player || 'ゲスト',
+    center: state.center,
+    event: state.event,
+    gamesCount: gCount,
+    scratchTotal: st.totalPins,
+    hdcpPerGame: state.hdcp,
+    totalWithHdcp: totalHdcp,
+    average: Number(st.avg),
+    highGame: st.highGame,
+    strikeRate: st.strRate,
+    spareRate: st.sprRate,
+    tenPinRate: st.tenRate,
+    splitRate: st.splRate,
+    punchOutRate: st.poRate,
+    condName: state.cond.name,
+    condType: state.cond.type,
+    condLength: state.cond.length,
+    condVolume: state.cond.volume,
+    condRatio: state.cond.ratio,
+    condNote: state.cond.note,
+    condImageUrl: '',
+    gamesJson: JSON.stringify(playedGames)
+  };
+
+  const isEdit = editingScoreRowNumber !== null;
+  isSyncingSeries = true;
+  setSaveButtonsLoading(true);
+  if (!isEdit) {
+    state.localHistory.unshift(recordObj);
+    saveLocalState();
+  }
+  showToast(isEdit ? '修正内容を上書き保存中...' : (skippedCount > 0 ? ('未入力' + skippedCount + 'Gを除外して登録中...') : 'スプレッドシートへ登録中...'));
+
+  try {
+    const payload = isEdit
+      ? { action: 'updateScore', rowNumber: editingScoreRowNumber, ...recordObj, games: playedGames }
+      : { ...recordObj, games: playedGames };
+    const json = await gasPost(payload);
+    if (json.status === 'ok') {
+      if (isEdit) {
+        if (json.records) state.sharedRecords = json.records;
+        editingScoreRowNumber = null;
+        const banner = document.getElementById('editModeBanner');
+        if (banner) banner.style.display = 'none';
+        saveLocalState();
+        renderRanking();
+        renderStats();
+        showToast('✅ スコアを修正・上書き保存しました！');
+        startNewSeries(true);
+      } else {
+        showToast('✅ ' + gCount + 'G分のスコア登録完了！「🏆 履歴・順位」で確認できます');
+        fetchSharedScores(true);
+        if (confirm('スコア（' + gCount + 'G / AVE ' + st.avg + '）を登録しました！\n新しいシリーズを開始（ゲームをクリア）しますか？')) {
+          startNewSeries(true);
+        }
+      }
+    } else {
+      showToast('❌ 保存エラー: ' + (json.message || '失敗'));
+    }
+  } catch (e) {
+    showToast('⚠️ 通信エラーのため端末内履歴に保存しました');
+  } finally {
+    isSyncingSeries = false;
+    setSaveButtonsLoading(false);
+  }
+}
+
+function applyFetchedData(json) {
+  if (json.records) state.sharedRecords = json.records;
+  if (json.conditions && json.conditions.length) {
+    state.savedConditions = json.conditions;
+    renderSavedConditionsDropdown();
+  }
+  if (json.centers && json.centers.length) {
+    state.centers = json.centers;
+    renderCentersDropdown();
+  }
+  if (json.ballMaster && json.ballMaster.length) {
+    state.ballMaster = json.ballMaster;
+    initBallMasterUI();
+  }
+  if (json.players && json.players.length) {
+    state.players = json.players;
+    if (state.player) {
+      const me = state.players.find(p => String(p.player) === state.player);
+      if (me) {
+        state.balls = parsePlayerBalls(me);
+        renderBallDb();
+        renderBallSelect();
+      }
+    }
+    renderPlayersDropdown();
+  }
+  saveLocalState();
+  renderRanking();
+  renderStats();
+}
+
+async function fetchSharedScores(silent) {
+  if (!state.passcode) {
+    showPasscodeLock('');
+    return;
+  }
+  if (!silent) showToast('最新データを読み込み中...');
+  try {
+    const baseUrl = state.gasUrl || DEFAULT_GAS_URL;
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    const res = await fetch(baseUrl + sep + 'pass=' + encodeURIComponent(state.passcode));
+    const json = await res.json();
+    if (json.status === 'unauthorized') {
+      state.passcode = '';
+      saveLocalState();
+      showPasscodeLock('合言葉が変更されたか、正しくありません');
+      return;
+    }
+    if (json.status === 'ok') {
+      applyFetchedData(json);
+      if (!silent) showToast('✅ 最新の履歴・ボール一覧を更新しました');
+    }
+  } catch (e) {
+    renderRanking();
+  }
+}
+
+function formatDateStr(val) {
+  if (!val) return '';
+  const s = String(val);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+  return s.slice(0, 10);
+}
+
+function parsePct(val) {
+  const n = parseFloat(String(val || '0').replace(/[^0-9.]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function getAllHistoryRecords() {
+  return (state.sharedRecords && state.sharedRecords.length > 0) ? state.sharedRecords : state.localHistory;
+}
+
+function toggleDetailBox(id) {
+  const el = document.getElementById('detail-box-' + id);
+  if (el) el.classList.toggle('open');
+}
+
+function buildRecordDetailHtml(r, recKey) {
+  let parts = [];
+  if (r.event || Number(r.hdcpPerGame || 0) > 0) {
+    parts.push('<div style="color:var(--text-dim); margin-bottom:4px;">' +
+      (r.event ? '🏷️ ' + r.event + ' ' : '') +
+      (Number(r.hdcpPerGame || 0) > 0 ? ' / HDCP: ' + r.hdcpPerGame + '×' + (r.gamesCount || 0) + 'G' : '') +
+    '</div>');
+  }
+  if (r.condName || r.condLength || r.condVolume || r.condRatio || r.condNote) {
+    parts.push('<div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); border-radius:6px; padding:6px 8px; margin-bottom:6px;">' +
+      '<div style="font-weight:700; color:var(--primary);">🛢️ ' + [r.condName, r.condType, r.condLength, r.condVolume, r.condRatio].filter(Boolean).join(' / ') + '</div>' +
+      (r.condNote ? '<div style="color:var(--text-dim); margin-top:2px;">' + r.condNote + '</div>' : '') +
+    '</div>');
+  }
+  let gamesHtml = '';
+  try {
+    const gs = typeof r.gamesJson === 'string' ? JSON.parse(r.gamesJson) : (r.gamesJson || []);
+    if (Array.isArray(gs) && gs.length) {
+      gamesHtml = gs.map((g, gi) => {
+        const sc = calcFrameScores(g).current;
+        const framesTxt = (g.frames || []).map((fr, fi) =>
+          (fr.rolls || []).map((_, ri) => formatRollSymbol(fi, ri, fr.rolls, fr.splits || [])).join('')
+        ).filter(Boolean).join(' | ');
+        return '<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06);">' +
+          '<div><strong>G' + (gi + 1) + ': ' + sc + '点</strong> <span style="color:var(--text-dim);">(' + (g.ball || '未指定') + ' / ' + (g.stance || '-') + '→' + (g.target || '-') + ')</span></div>' +
+          (framesTxt ? '<div style="font-family:monospace; font-size:10px; color:#cbd5e1; margin-top:2px; overflow-x:auto;">' + framesTxt + '</div>' : '') +
+        '</div>';
+      }).join('');
+    }
+  } catch (e) {}
+  parts.push(gamesHtml || '<div style="color:var(--text-dim);">ゲーム別フレームデータなし（合計: ' + (r.scratchTotal || 0) + ' / ' + (r.gamesCount || 0) + 'G）</div>');
+
+  if (r._rowNumber) {
+    parts.push('<div style="display:flex; gap:8px; margin-top:8px;">' +
+      '<button type="button" class="btn-sm" style="flex:1; justify-content:center; border-color:var(--accent); color:#fcd34d;" onclick="event.stopPropagation(); editHistoryRecord(\'' + recKey + '\')">✏️ このスコアを修正</button>' +
+      '<button type="button" class="btn-sm" style="flex:1; justify-content:center; border-color:var(--split); color:#fca5a5;" onclick="event.stopPropagation(); deleteHistoryRecord(\'' + recKey + '\')">🗑️ 削除</button>' +
+    '</div>');
+  }
+  return parts.join('');
+}
+
+function editHistoryRecord(recKey) {
+  const r = renderedRecordMap[recKey];
+  if (!r || !r._rowNumber) return showToast('スプレッドシート上の行情報が見つかりません（「最新読込」をお試しください）');
+
+  let parsedGames = [];
+  try {
+    const gs = typeof r.gamesJson === 'string' ? JSON.parse(r.gamesJson) : (r.gamesJson || []);
+    if (Array.isArray(gs) && gs.length > 0 && gs[0] && Array.isArray(gs[0].frames)) parsedGames = gs;
+  } catch (e) {}
+
+  if (parsedGames.length > 0) {
+    editingScoreRowNumber = r._rowNumber;
+    state.date = formatDateStr(r.date) || new Date().toISOString().slice(0, 10);
+    state.player = r.player || '';
+    state.hdcp = Number(r.hdcpPerGame || 0);
+    state.center = r.center || '';
+    state.event = r.event || '';
+    state.cond = {
+      name: r.condName || '',
+      type: r.condType || '',
+      length: r.condLength || '',
+      volume: r.condVolume || '',
+      ratio: r.condRatio || '',
+      note: r.condNote || '',
+      imageUrl: r.condImageUrl || ''
+    };
+    state.games = parsedGames;
+    state.activeGame = 0;
+
+    document.getElementById('metaDate').value = state.date;
+    document.getElementById('metaPlayer').value = state.player;
+    document.getElementById('metaHdcp').value = state.hdcp;
+    document.getElementById('metaCenter').value = state.center;
+    document.getElementById('metaEvent').value = state.event;
+    document.getElementById('condName').value = state.cond.name;
+    document.getElementById('condType').value = state.cond.type;
+    document.getElementById('condLength').value = state.cond.length;
+    document.getElementById('condVolume').value = state.cond.volume;
+    document.getElementById('condRatio').value = state.cond.ratio;
+    document.getElementById('condNote').value = state.cond.note;
+
+    const foundPlayer = (state.players || []).find(p => String(p.player) === state.player);
+    if (foundPlayer) state.balls = parsePlayerBalls(foundPlayer);
+
+    const banner = document.getElementById('editModeBanner');
+    const bannerTxt = document.getElementById('editModeBannerText');
+    if (banner) banner.style.display = 'block';
+    if (bannerTxt) bannerTxt.textContent = '✏️ 過去スコア編集中: ' + state.date + ' / ' + (state.player || 'ゲスト') + ' / ' + (state.center || '未記入');
+
+    updateCondBadge();
+    renderPlayersDropdown();
+    renderCentersDropdown();
+    resetPinDeckForNextRoll();
+    renderAll();
+    setSaveButtonsLoading(false);
+    switchTab('score', document.querySelectorAll('.nav-item')[0]);
+    showToast('✏️ スコア入力画面へ読み込みました。修正後に「上書き保存」を押してください');
+  } else {
+    directEditingRecord = r;
+    document.getElementById('erDate').value = formatDateStr(r.date);
+    document.getElementById('erPlayer').value = r.player || '';
+    document.getElementById('erCenter').value = r.center || '';
+    document.getElementById('erEvent').value = r.event || '';
+    document.getElementById('erGames').value = Number(r.gamesCount || 1);
+    document.getElementById('erScratch').value = Number(r.scratchTotal || 0);
+    document.getElementById('erHdcp').value = Number(r.hdcpPerGame || 0);
+    document.getElementById('erHigh').value = Number(r.highGame || 0);
+    document.getElementById('erCondName').value = r.condName || '';
+    openModal('editRecordModal');
+  }
+}
+
+async function saveDirectEditedRecord() {
+  if (!directEditingRecord || !directEditingRecord._rowNumber) return;
+  const gCount = Math.max(1, Number(document.getElementById('erGames').value || 1));
+  const scratch = Number(document.getElementById('erScratch').value || 0);
+  const hdcp = Number(document.getElementById('erHdcp').value || 0);
+  const payload = {
+    ...directEditingRecord,
+    action: 'updateScore',
+    rowNumber: directEditingRecord._rowNumber,
+    date: document.getElementById('erDate').value,
+    player: document.getElementById('erPlayer').value.trim() || 'ゲスト',
+    center: document.getElementById('erCenter').value.trim(),
+    event: document.getElementById('erEvent').value.trim(),
+    gamesCount: gCount,
+    scratchTotal: scratch,
+    hdcpPerGame: hdcp,
+    totalWithHdcp: scratch + hdcp * gCount,
+    average: Number((scratch / gCount).toFixed(1)),
+    highGame: Number(document.getElementById('erHigh').value || 0),
+    condName: document.getElementById('erCondName').value.trim()
+  };
+  showToast('スコアを上書き保存中...');
+  try {
+    const json = await gasPost(payload);
+    if (json.status === 'ok') {
+      if (json.records) state.sharedRecords = json.records;
+      saveLocalState();
+      closeModal('editRecordModal');
+      renderRanking();
+      renderStats();
+      showToast('✅ スコアを修正しました！');
+    } else {
+      showToast('❌ 修正エラー: ' + (json.message || '失敗'));
+    }
+  } catch (e) {
+    showToast('❌ 通信エラーが発生しました');
+  }
+}
+
+async function deleteHistoryRecord(recKey) {
+  const r = renderedRecordMap[recKey];
+  if (!r || !r._rowNumber) return showToast('削除対象の行情報が見つかりません（「最新読込」をお試しください）');
+  if (!confirm('以下のスコア履歴をスプレッドシートから完全に削除しますか？\n\n' + formatDateStr(r.date) + ' / ' + (r.player || 'ゲスト') + ' / ' + (r.center || '未記入') + ' (AVE:' + r.average + ')')) return;
+
+  showToast('スコアを削除中...');
+  try {
+    const json = await gasPost({ action: 'deleteScore', rowNumber: r._rowNumber });
+    if (json.status === 'ok') {
+      if (json.records) state.sharedRecords = json.records;
+      saveLocalState();
+      renderRanking();
+      renderStats();
+      showToast('🗑️ スコアを削除しました');
+    } else {
+      showToast('❌ 削除エラー: ' + (json.message || '失敗'));
+    }
+  } catch (e) {
+    showToast('❌ 通信エラーが発生しました');
+  }
+}
+
+function renderRanking() {
+  const box = document.getElementById('rankingList');
+  renderedRecordMap = {};
+  const allRecords = getAllHistoryRecords();
+  if (!allRecords || !allRecords.length) {
+    box.innerHTML = '<p style="font-size:12px; color:var(--text-dim);">まだ登録データがありません。</p>';
+    return;
+  }
+
+  // 集計期間プルダウン（通算 + 存在する月一覧）を最新化
+  const periodSel = document.getElementById('rankPeriodFilter');
+  if (periodSel) {
+    const prevPeriod = periodSel.value || 'ALL';
+    const months = [...new Set(allRecords.map(r => formatDateStr(r.date).slice(0, 7)).filter(m => /^\d{4}-\d{2}$/.test(m)))].sort().reverse();
+    periodSel.innerHTML = '<option value="ALL">通算（全期間）</option>' +
+      months.map(m => '<option value="' + m + '">' + m + '（月別）</option>').join('');
+    periodSel.value = (prevPeriod === 'ALL' || months.includes(prevPeriod)) ? prevPeriod : 'ALL';
+  }
+
+  let records = allRecords;
+  const periodFilter = periodSel ? periodSel.value : 'ALL';
+  if (periodFilter !== 'ALL') {
+    records = records.filter(r => formatDateStr(r.date).slice(0, 7) === periodFilter);
+  }
+
+  const condFilter = document.getElementById('rankCondFilter').value;
+  if (condFilter !== 'ALL') {
+    records = records.filter(r => (r.condType || classifyConditionClient(r.condLength, r.condRatio)) === condFilter);
+  }
+  if (!records.length) {
+    box.innerHTML = '<p style="font-size:12px; color:var(--text-dim);">条件に一致するデータがありません。</p>';
+    return;
+  }
+
+  const groupBy = document.getElementById('rankGroupBy').value;
+  const metric = document.getElementById('rankMetric').value;
+
+  const groups = {};
+  records.forEach(r => {
+    const key = (groupBy === 'center') ? (r.center || 'センター未記入') : (r.player || 'ゲスト');
+    if (!groups[key]) {
+      groups[key] = { label: key, items: [] };
+    }
+    groups[key].items.push(r);
+  });
+
+  const aggregated = Object.values(groups).map(g => {
+    const st = aggregateRecordsStats(g.items);
+    const totalHdcp = g.items.reduce((acc, r) => acc + Number(r.totalWithHdcp || 0), 0);
+    return {
+      label: g.label,
+      items: g.items,
+      gamesCount: st.gamesCount,
+      totalWithHdcp: totalHdcp,
+      average: Number(st.avg),
+      highGame: st.highGame,
+      strikeRate: st.strRate,
+      spareRate: st.sprRate,
+      tenPinRate: st.tenRate,
+      splitRate: st.splRate,
+      punchOutRate: st.poRate
+    };
+  }).sort((a, b) => sortMetricCompare(a, b, metric));
+
+  box.innerHTML = aggregated.map((g, i) => {
+    const grpId = 'grp_' + i;
+    const subItemsHtml = [...g.items]
+      .sort((a, b) => formatDateStr(b.date).localeCompare(formatDateStr(a.date)))
+      .map((r, ri) => {
+        const subKey = grpId + '_' + ri;
+        renderedRecordMap[subKey] = r;
+        return '<div style="background:var(--surface); border:1px solid var(--surface2); border-radius:8px; padding:8px; margin-bottom:6px;" onclick="event.stopPropagation(); toggleDetailBox(\'' + subKey + '\')">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<div><strong>' + formatDateStr(r.date) + '</strong> ' + (r.player || 'ゲスト') + ' / ' + (r.center || '未記入') + ' (' + (r.gamesCount || 0) + 'G)</div>' +
+            '<div style="color:var(--primary); font-weight:800;">AVE ' + r.average + ' ▾</div>' +
+          '</div>' +
+          '<div id="detail-box-' + subKey + '" class="game-detail-box">' + buildRecordDetailHtml(r, subKey) + '</div>' +
+        '</div>';
+      }).join('');
+
+    return '<div class="rank-card" onclick="toggleDetailBox(\'' + grpId + '\')">' +
+      '<div class="rank-card-top">' +
+        '<div style="display:flex; align-items:center; gap:8px;">' +
+          '<div class="rank-num">#' + (i + 1) + '</div>' +
+          '<div>' +
+            '<div style="font-weight:800; font-size:14px;">' + g.label + ' <span style="font-size:11px; color:var(--text-dim);">(' + g.items.length + '回 / ' + g.gamesCount + 'G)</span></div>' +
+            '<div style="font-size:11px; color:var(--text-dim);">AVE:' + g.average + ' / HI:' + g.highGame + ' / STR:' + g.strikeRate + ' / SPR:' + g.spareRate + '</div>' +
+            '<div style="font-size:11px; color:var(--text-dim);">10ピン:' + g.tenPinRate + ' / スプリット:' + g.splitRate + ' / パンチアウト:' + g.punchOutRate + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="text-align:right;">' +
+          '<div style="font-size:18px; font-weight:900; color:var(--primary);">' + formatMetricDisplay(g, metric) + '</div>' +
+          '<div style="font-size:10px; color:var(--text-dim);">詳細 ▾</div>' +
+        '</div>' +
+      '</div>' +
+      '<div id="detail-box-' + grpId + '" class="game-detail-box">' + subItemsHtml + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function sortMetricCompare(a, b, metric) {
+  if (metric === 'splitRate') return parsePct(a.splitRate) - parsePct(b.splitRate);
+  if (['strikeRate','spareRate','tenPinRate','punchOutRate'].includes(metric)) {
+    return parsePct(b[metric]) - parsePct(a[metric]);
+  }
+  return Number(b[metric] || 0) - Number(a[metric] || 0);
+}
+
+function formatMetricDisplay(obj, metric) {
+  if (metric === 'average') return obj.average + ' AVE';
+  if (metric === 'highGame') return (obj.highGame || 0) + ' 点';
+  if (metric === 'totalWithHdcp') return (obj.totalWithHdcp || 0) + ' 点';
+  return obj[metric] || '-';
+}
+
+function csvEscape(val) {
+  if (val === null || val === undefined) return '""';
+  return '"' + String(val).replace(/"/g, '""') + '"';
+}
+
+function exportCsv(mode) {
+  saveLocalState();
+  const records = mode === 'shared' ? getAllHistoryRecords() : [];
+  let rows = [], filename = '';
+  if (mode === 'shared' && records.length) {
+    const headers = ['日付','プレイヤー','ボウリング場','イベント','ゲーム数','合計','ハンデ込','AVE','ハイスコア','ストライク率','スペア率','10ピン率','スプリット率','パンチアウト率','パターン名','区分','オイル長さ','オイル量','比率'];
+    rows.push(headers.map(csvEscape).join(','));
+    records.forEach(r => rows.push([r.date,r.player,r.center,r.event,r.gamesCount,r.scratchTotal,r.totalWithHdcp,r.average,r.highGame,r.strikeRate,r.spareRate,r.tenPinRate,r.splitRate,r.punchOutRate,r.condName,r.condType,r.condLength,r.condVolume,r.condRatio].map(csvEscape).join(',')));
+    filename = 'StrikeLedger_All_' + new Date().toISOString().slice(0,10) + '.csv';
+  } else {
+    const headers = ['日付','プレイヤー','ボウリング場','ゲーム番号','スコア','使用ボール','立ち位置','スパット','パターン名','区分','オイル長さ','1F','2F','3F','4F','5F','6F','7F','8F','9F','10F'];
+    rows.push(headers.map(csvEscape).join(','));
+    state.games.forEach((g, idx) => {
+      const fStrs = g.frames.map((fr, fi) => fr.rolls.map((_, ri) => formatRollSymbol(fi, ri, fr.rolls, fr.splits)).join(' '));
+      rows.push([state.date, state.player, state.center, idx+1, calcFrameScores(g).current, g.ball, g.stance, g.target, state.cond.name, state.cond.type, state.cond.length, ...fStrs].map(csvEscape).join(','));
+    });
+    filename = 'StrikeLedger_Series_' + state.date + '.csv';
+  }
+  const blob = new Blob(['\uFEFF' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  showToast('📥 CSVをダウンロードしました');
+}
+
+function parseCsvRow(line) {
+  const cols = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = false;
+      } else cur += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { cols.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  cols.push(cur);
+  return cols;
+}
+
+function parsePinListStr(pinStr) {
+  const s = String(pinStr || '').trim();
+  if (!s || s === '-') return [];
+  return s.split('-').map(n => Number(n)).filter(n => n >= 1 && n <= 10);
+}
+
+function parseBowlingAppCsv(csvText) {
+  const lines = String(csvText || '').split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (!lines.length || !lines[0].includes('1-1:Count')) return null;
+
+  const seriesMap = new Map();
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCsvRow(lines[i]);
+    if (cols[0] !== 'Game') continue;
+
+    const scoreVal = Number(cols[9]);
+    if (isNaN(scoreVal) || scoreVal < 0) continue; // 未完了(-1)は除外
+
+    const dateStr = String(cols[1] || '').trim().replace(/\//g, '-');
+    const eventName = String(cols[2] || '').trim() || String(cols[5] || '').trim();
+    const bowler = String(cols[4] || '').trim() || 'ゲスト';
+    const alley = String(cols[6] || '').trim();
+    const gameNum = Number(cols[8] || 1);
+    const hdcp = Number(cols[10] || 0);
+
+    const frames = [];
+    const ballCounts = {};
+    for (let f = 0; f < 10; f++) {
+      const rolls = [], leaves = [], splits = [];
+      if (f < 9) {
+        const b1 = 12 + f * 10;
+        const b2 = b1 + 5;
+        const c1Str = String(cols[b1] || '').trim();
+        if (c1Str !== '') {
+          const r1 = Number(c1Str);
+          const l1 = parsePinListStr(cols[b1 + 1]);
+          const ball1 = String(cols[b1 + 3] || '').trim();
+          const flag1 = String(cols[b1 + 4] || '').trim();
+          if (ball1) ballCounts[ball1] = (ballCounts[ball1] || 0) + 1;
+          rolls.push(r1);
+          leaves.push(l1);
+          splits.push(flag1 === 'S' || isSplitLeave(l1));
+
+          const c2Str = String(cols[b2] || '').trim();
+          if (r1 < 10 && c2Str !== '') {
+            const c2 = Number(c2Str);
+            const r2 = Math.max(0, Math.min(10 - r1, c2 - r1));
+            const l2 = parsePinListStr(cols[b2 + 1]);
+            const ball2 = String(cols[b2 + 3] || '').trim();
+            if (ball2) ballCounts[ball2] = (ballCounts[ball2] || 0) + 1;
+            rolls.push(r2);
+            leaves.push(l2);
+            splits.push(false);
+          }
+        }
+      } else {
+        const b1 = 12 + 9 * 10;
+        const b2 = b1 + 5;
+        const b3 = b1 + 10;
+        const c1Str = String(cols[b1] || '').trim();
+        if (c1Str !== '') {
+          const r1 = Number(c1Str);
+          const l1 = parsePinListStr(cols[b1 + 1]);
+          const ball1 = String(cols[b1 + 3] || '').trim();
+          const flag1 = String(cols[b1 + 4] || '').trim();
+          if (ball1) ballCounts[ball1] = (ballCounts[ball1] || 0) + 1;
+          rolls.push(r1);
+          leaves.push(l1);
+          splits.push(flag1 === 'S' || isSplitLeave(l1));
+
+          const c2Str = String(cols[b2] || '').trim();
+          if (c2Str !== '') {
+            const c2 = Number(c2Str);
+            const isFresh2 = (r1 === 10);
+            const r2 = isFresh2 ? c2 : Math.max(0, Math.min(10 - r1, c2 - r1));
+            const l2 = parsePinListStr(cols[b2 + 1]);
+            const ball2 = String(cols[b2 + 3] || '').trim();
+            const flag2 = String(cols[b2 + 4] || '').trim();
+            if (ball2) ballCounts[ball2] = (ballCounts[ball2] || 0) + 1;
+            rolls.push(r2);
+            leaves.push(l2);
+            splits.push(isFresh2 && (flag2 === 'S' || isSplitLeave(l2)));
+
+            const c3Str = String(cols[b3] || '').trim();
+            if (c3Str !== '' && (r1 === 10 || r1 + r2 === 10)) {
+              const c3 = Number(c3Str);
+              const isFresh3 = (r1 === 10 && r2 === 10) || (r1 < 10 && r1 + r2 === 10);
+              const r3 = isFresh3 ? c3 : Math.max(0, Math.min(10 - r2, c3 - r2));
+              const l3 = parsePinListStr(cols[b3 + 1]);
+              const ball3 = String(cols[b3 + 3] || '').trim();
+              const flag3 = String(cols[b3 + 4] || '').trim();
+              if (ball3) ballCounts[ball3] = (ballCounts[ball3] || 0) + 1;
+              rolls.push(r3);
+              leaves.push(l3);
+              splits.push(isFresh3 && (flag3 === 'S' || isSplitLeave(l3)));
+            }
+          }
+        }
+      }
+      frames.push({ rolls, leaves, splits });
+    }
+
+    const mainBall = Object.entries(ballCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    const key = [dateStr, bowler, alley, eventName].join('||');
+    if (!seriesMap.has(key)) {
+      seriesMap.set(key, { date: dateStr, player: bowler, center: alley, event: eventName, hdcp: hdcp, games: [] });
+    }
+    seriesMap.get(key).games.push({
+      gameNum: gameNum,
+      frames: frames,
+      ball: mainBall,
+      stance: '',
+      target: ''
+    });
+  }
+
+  const records = [];
+  for (const s of seriesMap.values()) {
+    s.games.sort((a, b) => a.gameNum - b.gameNum);
+    const cleanGames = s.games.map(({ frames, ball, stance, target }) => ({ frames, ball, stance, target }));
+    const st = computeSeriesStats(cleanGames);
+    const gCount = cleanGames.length;
+    records.push({
+      date: s.date,
+      player: s.player,
+      center: s.center,
+      event: s.event,
+      gamesCount: gCount,
+      scratchTotal: st.totalPins,
+      hdcpPerGame: s.hdcp,
+      totalWithHdcp: st.totalPins + s.hdcp * gCount,
+      average: Number(st.avg),
+      highGame: st.highGame,
+      strikeRate: st.strRate,
+      spareRate: st.sprRate,
+      tenPinRate: st.tenRate,
+      splitRate: st.splRate,
+      punchOutRate: st.poRate,
+      condName: '',
+      condType: '',
+      condLength: '',
+      condVolume: '',
+      condRatio: '',
+      condNote: '',
+      condImageUrl: '',
+      gamesJson: JSON.stringify(cleanGames)
+    });
+  }
+  return records.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function getFilteredCsvRecords() {
+  const monthSel = document.getElementById('csvMonthFilter');
+  const monthVal = monthSel ? monthSel.value : 'ALL';
+  const overrideName = (document.getElementById('csvPlayerOverride') && document.getElementById('csvPlayerOverride').value || '').trim();
+  return pendingCsvRecords
+    .filter(r => monthVal === 'ALL' || formatDateStr(r.date).slice(0, 7) === monthVal)
+    .map(r => overrideName ? { ...r, player: overrideName } : r);
+}
+
+function renderCsvImportPreview() {
+  const statusEl = document.getElementById('csvImportStatus');
+  const prevEl = document.getElementById('csvPreviewList');
+  const btnEl = document.getElementById('btnConfirmCsvImport');
+  const filtered = getFilteredCsvRecords();
+  const totalGames = filtered.reduce((acc, r) => acc + Number(r.gamesCount || 0), 0);
+
+  if (!filtered.length) {
+    statusEl.textContent = '該当する月のデータがありません';
+    prevEl.innerHTML = '';
+    btnEl.style.display = 'none';
+    return;
+  }
+
+  statusEl.textContent = '✅ 取り込み対象：' + filtered.length + 'シリーズ（計 ' + totalGames + 'G）';
+  prevEl.innerHTML = filtered.map(r =>
+    '<div style="padding:5px 0; border-bottom:1px solid var(--surface2);">' +
+      '<div><strong>' + formatDateStr(r.date) + '</strong> ' + (r.player || 'ゲスト') + ' / ' + (r.center || '') + (r.event ? ' [' + r.event + ']' : '') + '</div>' +
+      '<div style="color:var(--text-dim);">' + (r.gamesCount || 0) + 'G / AVE:' + (r.average || '-') + ' / HI:' + (r.highGame || '-') + ' / STR:' + (r.strikeRate || '-') + ' / SPR:' + (r.spareRate || '-') + ' / 10ピン:' + (r.tenPinRate || '-') + '</div>' +
+    '</div>'
+  ).join('');
+  btnEl.textContent = '✅ この ' + filtered.length + 'シリーズ（' + totalGames + 'G）をスプレッドシートへ一括登録';
+  btnEl.style.display = 'block';
+}
+
+function setupCsvMonthFilter(records) {
+  const ctrl = document.getElementById('csvFilterControls');
+  const monthSel = document.getElementById('csvMonthFilter');
+  const months = [...new Set(records.map(r => formatDateStr(r.date).slice(0, 7)).filter(m => /^\d{4}-\d{2}$/.test(m)))].sort().reverse();
+  if (monthSel) {
+    monthSel.innerHTML = '<option value="ALL">すべての期間 (' + records.length + 'シリーズ)</option>' +
+      months.map(m => {
+        const cnt = records.filter(r => formatDateStr(r.date).slice(0, 7) === m).length;
+        return '<option value="' + m + '">' + m + ' のみ (' + cnt + 'シリーズ)</option>';
+      }).join('');
+    if (months.length) monthSel.value = months[0]; // デフォルトで最新月（例: 2026-11）を選択
+  }
+  const ov = document.getElementById('csvPlayerOverride');
+  if (ov && !ov.value && state.player) ov.placeholder = '例: ' + state.player + '（空ならCSVのまま）';
+  if (ctrl) ctrl.style.display = 'block';
+}
+
+function handleCsvUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('csvImportStatus');
+  const prevEl = document.getElementById('csvPreviewList');
+  const btnEl = document.getElementById('btnConfirmCsvImport');
+  const ctrlEl = document.getElementById('csvFilterControls');
+  statusEl.textContent = '⏳ CSVを解析しています...';
+  prevEl.innerHTML = '';
+  btnEl.style.display = 'none';
+  if (ctrlEl) ctrlEl.style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const buf = ev.target.result;
+      let text = new TextDecoder('utf-8').decode(buf);
+      if (text.includes('\uFFFD')) {
+        text = new TextDecoder('shift_jis').decode(buf);
+      }
+
+      // まずフレーム詳細付きボウリングアプリCSVとして高速ローカル解析を試行
+      const localParsed = parseBowlingAppCsv(text);
+      if (localParsed && localParsed.length > 0) {
+        pendingCsvRecords = localParsed;
+        setupCsvMonthFilter(pendingCsvRecords);
+        renderCsvImportPreview();
+        return;
+      }
+
+      // 未知形式の場合はGASのGemini AI自動変換へフォールバック
+      statusEl.textContent = '⏳ AIがCSVの列構成を自動解析しています...';
+      const json = await gasPost({ action: 'parseCsv', csvText: text });
+      if (json.status === 'ok' && json.records && json.records.length) {
+        pendingCsvRecords = json.records;
+        setupCsvMonthFilter(pendingCsvRecords);
+        renderCsvImportPreview();
+      } else {
+        statusEl.textContent = '❌ 変換できるデータが見つかりませんでした';
+      }
+    } catch (err) {
+      statusEl.textContent = '❌ 解析・通信エラーが発生しました: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function confirmCsvBulkImport() {
+  const targetRecords = getFilteredCsvRecords();
+  if (!targetRecords.length) return showToast('取り込むデータがありません');
+  const btnEl = document.getElementById('btnConfirmCsvImport');
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳ スプレッドシートへ一括登録中...'; }
+  showToast(targetRecords.length + 'シリーズを一括登録中...');
+  try {
+    const json = await gasPost({ action: 'bulkImportScores', records: targetRecords });
+    if (json.status === 'ok') {
+      showToast('✅ ' + json.count + 'シリーズのCSVデータを登録しました！');
+      closeModal('csvModal');
+      fetchSharedScores(true);
+    } else {
+      showToast('❌ 一括登録エラー: ' + (json.message || '失敗'));
+    }
+  } catch (e) {
+    showToast('❌ 一括登録に失敗しました');
+  } finally {
+    if (btnEl) btnEl.disabled = false;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

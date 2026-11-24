@@ -1,0 +1,9 @@
+# clasp 認証情報（絶対にリポジトリに含めない）
+.clasprc.json
+
+# Node.js
+node_modules/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
