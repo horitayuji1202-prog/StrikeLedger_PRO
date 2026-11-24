@@ -966,6 +966,7 @@ const APP_CHANGELOG = [
     items: [
       '「🏆 履歴・順位」のスコア詳細で、各フレーム（1〜10F）のスコア表の下に10本ピンの配置図を表示するようにしました',
       '白丸＝1投目残り（スペアでカバー）、赤丸＝2投目でも残ったピン（ミス）、スプリットは丸囲み数字で一目で確認できます',
+      'スコアシート写真AI読取でも、ピン配置図（1〜10番ピン）が写っていれば残りピンを自動で読み取って保存できるようになりました',
       'ボール一覧のカバーストック・メーカー誤記29件を一括修正＆IQツアー・ギャラクシーを追加しました'
     ]
   },
@@ -1926,12 +1927,23 @@ function handleConditionPhoto(e) {
 }
 
 /* スコアシート写真AI読取 */
+function sanitizeAiPinList(arr) {
+  if (!Array.isArray(arr)) return [];
+  const set = new Set();
+  arr.forEach(v => {
+    const n = Number(v);
+    if (Number.isInteger(n) && n >= 1 && n <= 10) set.add(n);
+  });
+  return [...set].sort((a, b) => a - b);
+}
+
 function normalizeAiGame(aiGame) {
   const frames = [];
   const srcFrames = Array.isArray(aiGame && aiGame.frames) ? aiGame.frames : [];
   for (let f = 0; f < 10; f++) {
     const sf = srcFrames[f] || {};
     const rawRolls = Array.isArray(sf.rolls) ? sf.rolls : [];
+    const rawLeaves = Array.isArray(sf.leaves) ? sf.leaves : [];
     const rawSplits = Array.isArray(sf.splits) ? sf.splits : [];
     const rolls = [];
     const leaves = [];
@@ -1939,35 +1951,51 @@ function normalizeAiGame(aiGame) {
     if (f < 9) {
       if (rawRolls.length > 0) {
         const r1 = Math.max(0, Math.min(10, Number(rawRolls[0] || 0)));
+        let l1 = r1 === 10 ? [] : sanitizeAiPinList(rawLeaves[0]);
         rolls.push(r1);
-        leaves.push([]);
-        splits.push(Boolean(rawSplits[0]) && r1 < 10);
+        leaves.push(l1);
+        splits.push((Boolean(rawSplits[0]) || isSplitLeave(l1)) && r1 < 10);
         if (r1 < 10 && rawRolls.length > 1) {
           const r2 = Math.max(0, Math.min(10 - r1, Number(rawRolls[1] || 0)));
+          let l2 = (r1 + r2 === 10) ? [] : sanitizeAiPinList(rawLeaves[1]);
+          if (l2.length > 0) {
+            const merged = new Set([...l1, ...l2]);
+            leaves[0] = [...merged].sort((a, b) => a - b);
+          }
           rolls.push(r2);
-          leaves.push([]);
+          leaves.push(l2);
           splits.push(false);
         }
       }
     } else {
       if (rawRolls.length > 0) {
         const r1 = Math.max(0, Math.min(10, Number(rawRolls[0] || 0)));
+        const l1 = r1 === 10 ? [] : sanitizeAiPinList(rawLeaves[0]);
         rolls.push(r1);
-        leaves.push([]);
-        splits.push(Boolean(rawSplits[0]) && r1 < 10);
+        leaves.push(l1);
+        splits.push((Boolean(rawSplits[0]) || isSplitLeave(l1)) && r1 < 10);
         if (rawRolls.length > 1) {
-          const max2 = r1 === 10 ? 10 : (10 - r1);
+          const isFresh2 = (r1 === 10);
+          const max2 = isFresh2 ? 10 : (10 - r1);
           const r2 = Math.max(0, Math.min(max2, Number(rawRolls[1] || 0)));
+          const l2 = (isFresh2 ? (r2 === 10) : (r1 + r2 === 10)) ? [] : sanitizeAiPinList(rawLeaves[1]);
+          if (!isFresh2 && l2.length > 0) {
+            leaves[0] = [...new Set([...leaves[0], ...l2])].sort((a, b) => a - b);
+          }
           rolls.push(r2);
-          leaves.push([]);
-          splits.push(r1 === 10 && Boolean(rawSplits[1]) && r2 < 10);
+          leaves.push(l2);
+          splits.push(isFresh2 && (Boolean(rawSplits[1]) || isSplitLeave(l2)) && r2 < 10);
           if (rawRolls.length > 2 && (r1 === 10 || r1 + r2 === 10)) {
             const isFresh3 = (r1 === 10 && r2 === 10) || (r1 < 10 && r1 + r2 === 10);
             const max3 = isFresh3 ? 10 : (10 - r2);
             const r3 = Math.max(0, Math.min(max3, Number(rawRolls[2] || 0)));
+            const l3 = (isFresh3 ? (r3 === 10) : (r2 + r3 === 10)) ? [] : sanitizeAiPinList(rawLeaves[2]);
+            if (!isFresh3 && l3.length > 0) {
+              leaves[1] = [...new Set([...leaves[1], ...l3])].sort((a, b) => a - b);
+            }
             rolls.push(r3);
-            leaves.push([]);
-            splits.push(isFresh3 && Boolean(rawSplits[2]) && r3 < 10);
+            leaves.push(l3);
+            splits.push(isFresh3 && (Boolean(rawSplits[2]) || isSplitLeave(l3)) && r3 < 10);
           }
         }
       }
@@ -2001,7 +2029,7 @@ function handleScoreSheetPhoto(e) {
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
 
       if (prevEl) {
         prevEl.src = dataUrl;
