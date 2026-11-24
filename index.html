@@ -190,6 +190,96 @@
       font-size: 11px; display: none;
     }
     .game-detail-box.open { display: block; }
+    .hist-pin-legend {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      font-size: 10px; color: var(--text-dim); margin: 4px 0 6px;
+    }
+    .hist-pin-legend span { display: inline-flex; align-items: center; gap: 3px; }
+    .hist-sheet {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(26px, 1fr)) minmax(36px, 1.35fr);
+      gap: 2px;
+      margin-top: 5px;
+      overflow-x: auto;
+    }
+    .hist-frame {
+      background: var(--bg);
+      border: 1px solid var(--surface2);
+      border-radius: 5px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .hist-fnum {
+      font-size: 9px;
+      color: var(--text-dim);
+      text-align: center;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      line-height: 1.4;
+      font-weight: 700;
+    }
+    .hist-rolls {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      min-height: 17px;
+    }
+    .hist-roll {
+      flex: 1;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 17px;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      color: var(--text);
+    }
+    .hist-roll:last-child { border-right: none; }
+    .hist-roll.strike { color: var(--strike); }
+    .hist-roll.spare { color: var(--spare); }
+    .hist-roll.split { color: #fca5a5; }
+    .hist-roll.split > span {
+      display: inline-block;
+      width: 13px; height: 13px; line-height: 11px;
+      border: 1px solid var(--split);
+      border-radius: 50%;
+      font-size: 9px;
+    }
+    .hist-ftot {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #f8fafc;
+      line-height: 1.5;
+      min-height: 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .hist-pins {
+      padding: 3px 1px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: rgba(15, 23, 42, 0.55);
+    }
+    .hist-pin-row {
+      display: flex;
+      justify-content: center;
+      gap: 2px;
+    }
+    .hist-pin-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(148, 163, 184, 0.22);
+    }
+    .hist-pin-dot.spare-cleared {
+      background: #f8fafc;
+      box-shadow: 0 0 2px rgba(248, 250, 252, 0.6);
+    }
+    .hist-pin-dot.missed {
+      background: #ef4444;
+      box-shadow: 0 0 3px rgba(239, 68, 68, 0.7);
+    }
     .pill-tag {
       display: inline-block; background: rgba(56,189,248,0.15); color: var(--primary);
       border: 1px solid rgba(56,189,248,0.35); border-radius: 6px; padding: 1px 6px; font-size: 10px; font-weight: 700;
@@ -869,6 +959,16 @@
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyb8KpDTj6yJ142MuK21_5UxSBV0t0iYe2ocXSttLrj1e7zIPYamnV24ZCfZK47iKwjIg/exec';
 
 const APP_CHANGELOG = [
+  {
+    version: 'v1.9',
+    date: '2026-11-24',
+    title: '履歴詳細に1〜10Fスコア表＋残りピン配置図を表示',
+    items: [
+      '「🏆 履歴・順位」のスコア詳細で、各フレーム（1〜10F）のスコア表の下に10本ピンの配置図を表示するようにしました',
+      '白丸＝1投目残り（スペアでカバー）、赤丸＝2投目でも残ったピン（ミス）、スプリットは丸囲み数字で一目で確認できます',
+      'ボール一覧のカバーストック・メーカー誤記29件を一括修正＆IQツアー・ギャラクシーを追加しました'
+    ]
+  },
   {
     version: 'v1.8',
     date: '2026-11-24',
@@ -2698,6 +2798,72 @@ function toggleDetailBox(id) {
   if (el) el.classList.toggle('open');
 }
 
+function buildPinMiniHtml(fi, fr) {
+  const rolls = (fr && Array.isArray(fr.rolls)) ? fr.rolls : [];
+  const leaves = (fr && Array.isArray(fr.leaves)) ? fr.leaves : [];
+  let firstLeave = [];
+  let secondLeave = [];
+  if (fi < 9) {
+    if (rolls[0] !== undefined && rolls[0] < 10) {
+      firstLeave = Array.isArray(leaves[0]) ? leaves[0] : [];
+      secondLeave = Array.isArray(leaves[1]) ? leaves[1] : [];
+    }
+  } else {
+    const r0 = rolls[0], r1 = rolls[1], r2 = rolls[2];
+    if (r0 !== undefined && r0 < 10) {
+      firstLeave = Array.isArray(leaves[0]) ? leaves[0] : [];
+      secondLeave = Array.isArray(leaves[1]) ? leaves[1] : [];
+    } else if (r0 === 10 && r1 !== undefined && r1 < 10) {
+      firstLeave = Array.isArray(leaves[1]) ? leaves[1] : [];
+      secondLeave = Array.isArray(leaves[2]) ? leaves[2] : [];
+    } else if (r0 === 10 && r1 === 10 && r2 !== undefined && r2 < 10) {
+      firstLeave = Array.isArray(leaves[2]) ? leaves[2] : [];
+      secondLeave = [];
+    }
+  }
+  const rows = [[7, 8, 9, 10], [4, 5, 6], [2, 3], [1]];
+  return '<div class="hist-pins">' + rows.map(row =>
+    '<div class="hist-pin-row">' + row.map(p => {
+      let cls = 'hist-pin-dot';
+      if (secondLeave.includes(p)) cls += ' missed';
+      else if (firstLeave.includes(p)) cls += ' spare-cleared';
+      return '<span class="' + cls + '"></span>';
+    }).join('') + '</div>'
+  ).join('') + '</div>';
+}
+
+function buildHistoryGameSheetHtml(g, gi) {
+  const calc = calcFrameScores(g);
+  const frames = Array.isArray(g.frames) ? g.frames : [];
+  const sheetHtml = Array.from({ length: 10 }, (_, fi) => {
+    const fr = frames[fi] || { rolls: [], leaves: [], splits: [] };
+    const rolls = fr.rolls || [];
+    const splits = fr.splits || [];
+    const cells = fi === 9 ? [0, 1, 2] : [0, 1];
+    const rollsHtml = cells.map(ri => {
+      const sym = formatRollSymbol(fi, ri, rolls, splits);
+      let cls = 'hist-roll';
+      if (sym === 'X') cls += ' strike';
+      else if (sym === '/') cls += ' spare';
+      const isSplit = Boolean(splits[ri]) && sym !== '' && sym !== 'X' && sym !== '/';
+      if (isSplit) cls += ' split';
+      return '<div class="' + cls + '">' + (isSplit ? '<span>' + sym + '</span>' : sym) + '</div>';
+    }).join('');
+    const tot = (calc.totals && calc.totals[fi] !== null && calc.totals[fi] !== undefined) ? calc.totals[fi] : '';
+    return '<div class="hist-frame">' +
+      '<div class="hist-fnum">' + (fi + 1) + '</div>' +
+      '<div class="hist-rolls">' + rollsHtml + '</div>' +
+      '<div class="hist-ftot">' + tot + '</div>' +
+      buildPinMiniHtml(fi, fr) +
+    '</div>';
+  }).join('');
+
+  return '<div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.06);">' +
+    '<div><strong>G' + (gi + 1) + ': ' + calc.current + '点</strong> <span style="color:var(--text-dim);">(' + (g.ball || '未指定') + ' / ' + (g.stance || '-') + '→' + (g.target || '-') + ')</span></div>' +
+    '<div class="hist-sheet">' + sheetHtml + '</div>' +
+  '</div>';
+}
+
 function buildRecordDetailHtml(r, recKey) {
   let parts = [];
   if (r.event || Number(r.hdcpPerGame || 0) > 0) {
@@ -2716,16 +2882,12 @@ function buildRecordDetailHtml(r, recKey) {
   try {
     const gs = typeof r.gamesJson === 'string' ? JSON.parse(r.gamesJson) : (r.gamesJson || []);
     if (Array.isArray(gs) && gs.length) {
-      gamesHtml = gs.map((g, gi) => {
-        const sc = calcFrameScores(g).current;
-        const framesTxt = (g.frames || []).map((fr, fi) =>
-          (fr.rolls || []).map((_, ri) => formatRollSymbol(fi, ri, fr.rolls, fr.splits || [])).join('')
-        ).filter(Boolean).join(' | ');
-        return '<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06);">' +
-          '<div><strong>G' + (gi + 1) + ': ' + sc + '点</strong> <span style="color:var(--text-dim);">(' + (g.ball || '未指定') + ' / ' + (g.stance || '-') + '→' + (g.target || '-') + ')</span></div>' +
-          (framesTxt ? '<div style="font-family:monospace; font-size:10px; color:#cbd5e1; margin-top:2px; overflow-x:auto;">' + framesTxt + '</div>' : '') +
-        '</div>';
-      }).join('');
+      const legendHtml = '<div class="hist-pin-legend">' +
+        '<span><i class="hist-pin-dot spare-cleared" style="width:6px;height:6px;display:inline-block;"></i> 残りピン(カバー)</span>' +
+        '<span><i class="hist-pin-dot missed" style="width:6px;height:6px;display:inline-block;"></i> ミス残り</span>' +
+        '<span><i class="hist-pin-dot" style="width:6px;height:6px;display:inline-block;"></i> 倒したピン</span>' +
+      '</div>';
+      gamesHtml = legendHtml + gs.map((g, gi) => buildHistoryGameSheetHtml(g, gi)).join('');
     }
   } catch (e) {}
   parts.push(gamesHtml || '<div style="color:var(--text-dim);">ゲーム別フレームデータなし（合計: ' + (r.scratchTotal || 0) + ' / ' + (r.gamesCount || 0) + 'G）</div>');
