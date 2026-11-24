@@ -43,6 +43,9 @@ function doPost(e) {
     if (data.action === 'updateBallMaster') {
       return withScriptLock_(() => handleUpdateBallMaster_(ss, data));
     }
+    if (data.action === 'bulkImportBalls') {
+      return withScriptLock_(() => handleBulkImportBalls_(ss, data));
+    }
     if (data.action === 'addCenter') {
       return withScriptLock_(() => {
         const cSheet = getOrCreateCenterMasterSheet_(ss);
@@ -81,6 +84,49 @@ function doPost(e) {
   } catch (err) {
     return jsonOut_({ status: 'error', message: err.toString() });
   }
+}
+
+function handleBulkImportBalls_(ss, data) {
+  const sheet = getOrCreateBallMasterSheet_(ss);
+  const existingRows = sheet.getDataRange().getValues();
+  const rowIndexByName = new Map();
+  existingRows.slice(1).forEach((r, idx) => {
+    const nm = String(r[2] || '').trim().toLowerCase();
+    if (nm && !rowIndexByName.has(nm)) rowIndexByName.set(nm, idx + 2);
+  });
+
+  const toAdd = [];
+  let updated = 0;
+  (data.balls || []).forEach(b => {
+    const maker = String(b.maker || '').trim();
+    const name = String(b.name || '').trim();
+    if (!maker || !name) return;
+    const rowArr = [
+      b.releaseDate || '',
+      maker,
+      name,
+      b.cover || '',
+      b.core || '',
+      b.rg !== undefined ? b.rg : '',
+      b.drg !== undefined ? b.drg : '',
+      b.mb !== undefined ? b.mb : 'N/A',
+      b.finish || ''
+    ];
+    const key = name.toLowerCase();
+    if (rowIndexByName.has(key)) {
+      if (data.upsert) {
+        sheet.getRange(rowIndexByName.get(key), 1, 1, 9).setValues([rowArr]);
+        updated++;
+      }
+      return;
+    }
+    rowIndexByName.set(key, -1);
+    toAdd.push(rowArr);
+  });
+  if (toAdd.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, toAdd.length, 9).setValues(toAdd);
+  }
+  return jsonOut_({ status: 'ok', added: toAdd.length, updated: updated, total: rowIndexByName.size });
 }
 
 function handleUpdateBallMaster_(ss, data) {
