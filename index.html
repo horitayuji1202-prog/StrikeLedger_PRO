@@ -484,8 +484,12 @@
         </summary>
         <div style="margin-top:10px;">
           <p style="font-size:11px; color:var(--text-dim); margin:0 0 8px;">
-            紙のスコアシートやレーンモニターの写真をアップすると、ボウリング場名・日付・各ゲームの1〜10FをAIが自動入力します。読み取り後に内容を確認・修正して登録できます。
+            紙のスコアシートやアプリ画面をアップすると、ボウリング場名・日付・各ゲームの1〜10FをAIが自動入力します。
           </p>
+          <div class="sub-tabs" style="margin-bottom:8px;">
+            <button type="button" id="photoModePaper" class="sub-tab active" onclick="setScorePhotoMode('paper')">📄 紙シート（高速・高精度）</button>
+            <button type="button" id="photoModePins" class="sub-tab" onclick="setScorePhotoMode('pins')">📱 ピン図あり（アプリ画面）</button>
+          </div>
           <div class="row-inline" style="margin-bottom:8px;">
             <label class="btn-primary" style="text-align:center; flex:1; margin:0; cursor:pointer;">
               📷 スコアシートを撮影 / 写真を選択（AI読取）
@@ -493,6 +497,7 @@
             </label>
           </div>
           <div id="scorePhotoStatus" style="font-size:11px; color:var(--accent); margin-bottom:6px;"></div>
+          <div id="scorePhotoVerifyBar" style="display:none; margin-bottom:8px; flex-wrap:wrap; gap:6px;"></div>
           <div id="scorePhotoCenterSuggest" style="display:none; margin-bottom:8px;"></div>
           <img id="scorePhotoPreview" class="preview-img" style="display:none;" />
         </div>
@@ -959,6 +964,17 @@
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyb8KpDTj6yJ142MuK21_5UxSBV0t0iYe2ocXSttLrj1e7zIPYamnV24ZCfZK47iKwjIg/exec';
 
 const APP_CHANGELOG = [
+  {
+    version: 'v2.0',
+    date: '2026-11-26',
+    title: '紙スコアシート高速AI読取・画像クッキリ補正・自動再試行を追加',
+    items: [
+      'AI写真読取に「📄 紙シート（高速・高精度）」と「📱 ピン図あり（アプリ画面）」のモード切替を追加しました',
+      '紙シートモードでは送信前に薄い印字を自動でコントラスト強調し、出力も軽量化して読み取り速度と精度を向上させました',
+      '印字合計点とズレたゲームがある場合は黄色ボタンでハイライトし、ワンタップで確認画面へ移動できるようになりました',
+      'AIサーバー一時混雑時の自動リトライと、日本語のわかりやすいエラー表示に対応しました'
+    ]
+  },
   {
     version: 'v1.9',
     date: '2026-11-24',
@@ -2010,13 +2026,47 @@ function normalizeAiGame(aiGame) {
   };
 }
 
+let scorePhotoMode = 'paper';
+
+function setScorePhotoMode(mode) {
+  scorePhotoMode = (mode === 'pins') ? 'pins' : 'paper';
+  const bPaper = document.getElementById('photoModePaper');
+  const bPins = document.getElementById('photoModePins');
+  if (bPaper) bPaper.classList.toggle('active', scorePhotoMode === 'paper');
+  if (bPins) bPins.classList.toggle('active', scorePhotoMode === 'pins');
+}
+
+function formatAiErrorMessage(rawMsg) {
+  const s = String(rawMsg || '');
+  if (/high demand|overloaded|503|unavailable/i.test(s)) {
+    return 'GoogleのAIサーバーが一時的に混雑しています。30秒ほど置いてもう一度お試しください。';
+  }
+  if (/quota|rate-limit|429|exceeded/i.test(s)) {
+    return '無料AI枠の一時的な利用上限に達しています。1分ほど置いて再度お試しください。';
+  }
+  if (/GEMINI_API_KEY/i.test(s)) {
+    return 'GAS側に GEMINI_API_KEY が未設定です。';
+  }
+  return s || '解析に失敗しました';
+}
+
+function isRetryableAiError(rawMsg) {
+  return /high demand|overloaded|503|429|rate-limit|quota|timeout|一時的/i.test(String(rawMsg || ''));
+}
+
 function handleScoreSheetPhoto(e) {
-  const file = e.target.files[0];
+  const inputEl = e.target;
+  const file = inputEl.files[0];
   if (!file) return;
   const statusEl = document.getElementById('scorePhotoStatus');
+  const verifyEl = document.getElementById('scorePhotoVerifyBar');
   const suggestEl = document.getElementById('scorePhotoCenterSuggest');
   const prevEl = document.getElementById('scorePhotoPreview');
-  statusEl.textContent = '⏳ スコアシート画像を最適化してAIで読み取り中...（数秒かかります）';
+  const isPaper = (scorePhotoMode === 'paper');
+  statusEl.textContent = isPaper
+    ? '⏳ 紙シート用に画像をクッキリ補正して高速AI読取中...'
+    : '⏳ ピン図付きスコア画像を最適化してAI読取中...';
+  if (verifyEl) { verifyEl.style.display = 'none'; verifyEl.innerHTML = ''; }
   if (suggestEl) { suggestEl.style.display = 'none'; suggestEl.innerHTML = ''; }
 
   const reader = new FileReader();
@@ -2024,12 +2074,16 @@ function handleScoreSheetPhoto(e) {
     const img = new Image();
     img.onload = async () => {
       const canvas = document.createElement('canvas');
-      const maxW = 1100;
+      const maxW = isPaper ? 1024 : 1100;
       const scale = Math.min(1, maxW / img.width);
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const ctx = canvas.getContext('2d');
+      if (isPaper && typeof ctx.filter === 'string') {
+        ctx.filter = 'contrast(1.22) brightness(1.04)';
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', isPaper ? 0.80 : 0.82);
 
       if (prevEl) {
         prevEl.src = dataUrl;
@@ -2037,9 +2091,14 @@ function handleScoreSheetPhoto(e) {
       }
 
       try {
-        const json = await gasPost({ action: 'analyzeScoreSheet', imageBase64: dataUrl });
+        let json = await gasPost({ action: 'analyzeScoreSheet', mode: scorePhotoMode, imageBase64: dataUrl });
+        if (json.status !== 'ok' && isRetryableAiError(json.message)) {
+          statusEl.textContent = '⏳ AIサーバーが混雑中のため、2秒後に自動で再試行しています...';
+          await new Promise(r => setTimeout(r, 2200));
+          json = await gasPost({ action: 'analyzeScoreSheet', mode: scorePhotoMode, imageBase64: dataUrl });
+        }
         if (json.status !== 'ok' || !json.parsed) {
-          statusEl.textContent = '❌ 読み取りエラー: ' + (json.message || '解析に失敗しました');
+          statusEl.textContent = '❌ ' + formatAiErrorMessage(json.message);
           return;
         }
         const p = json.parsed;
@@ -2069,22 +2128,36 @@ function handleScoreSheetPhoto(e) {
         }
 
         const newGames = aiGames.map(normalizeAiGame);
-        const checkMsgs = newGames.map((g, idx) => {
+        let mismatchCount = 0;
+        let firstMismatchIdx = -1;
+        const verifyBtns = newGames.map((g, idx) => {
           const calc = calcFrameScores(g).current;
           const rep = Number(aiGames[idx].reportedTotal || 0);
-          if (rep > 0 && calc !== rep) return 'G' + (idx + 1) + ':' + calc + '点(⚠️印字' + rep + ')';
-          return 'G' + (idx + 1) + ':' + calc + '点✅';
+          if (rep > 0 && calc !== rep) {
+            mismatchCount++;
+            if (firstMismatchIdx === -1) firstMismatchIdx = idx;
+            return '<button type="button" class="btn-sm" style="border-color:var(--accent); background:rgba(245,158,11,0.15); color:#fcd34d;" onclick="selectGame(' + idx + ')">⚠️ G' + (idx + 1) + ': ' + calc + '点 (印字' + rep + '点・要確認)</button>';
+          }
+          return '<button type="button" class="btn-sm" style="border-color:var(--spare); color:#6ee7b7;" onclick="selectGame(' + idx + ')">✅ G' + (idx + 1) + ': ' + calc + '点</button>';
         });
 
         state.games = newGames;
-        state.activeGame = 0;
+        state.activeGame = firstMismatchIdx >= 0 ? firstMismatchIdx : 0;
         saveLocalState();
         resetPinDeckForNextRoll();
         renderAll();
-        statusEl.textContent = '✅ ' + newGames.length + 'ゲームを読み取りました！ [' + checkMsgs.join(' / ') + '] 内容を確認して「スコア登録」を押してください。';
+        if (verifyEl) {
+          verifyEl.style.display = 'flex';
+          verifyEl.innerHTML = verifyBtns.join('');
+        }
+        statusEl.textContent = mismatchCount > 0
+          ? '⚠️ ' + newGames.length + 'ゲーム読取完了（' + mismatchCount + 'ゲームに印字とのズレあり。下の黄色ボタンをタップして確認してください）'
+          : '✅ ' + newGames.length + 'ゲームを全問一致で読み取りました！内容を確認して「💾 登録」を押してください。';
         showToast('📸 ' + newGames.length + 'ゲームを自動入力しました！');
       } catch (err) {
-        statusEl.textContent = '❌ 通信エラーが発生しました';
+        statusEl.textContent = '❌ 通信エラーが発生しました（電波状況を確認して再試行してください）';
+      } finally {
+        inputEl.value = '';
       }
     };
     img.src = ev.target.result;
