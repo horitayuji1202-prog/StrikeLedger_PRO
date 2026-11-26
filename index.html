@@ -70,14 +70,48 @@
     .changelog-list { margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: var(--text); }
     .changelog-list li { margin-bottom: 3px; }
     .top-nav {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
       max-width: 760px; margin: 0 auto;
     }
     .nav-item {
       background: var(--surface); border: 1px solid var(--surface2); color: var(--text-dim);
-      padding: 8px 4px; border-radius: 8px;
+      padding: 8px 2px; border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 800; gap: 4px; cursor: pointer;
+      font-size: 11px; font-weight: 800; gap: 3px; cursor: pointer; white-space: nowrap;
+    }
+    .form-strip {
+      display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; margin: 6px 0;
+    }
+    .form-thumb {
+      width: 96px; height: 72px; object-fit: cover; border-radius: 6px;
+      border: 1px solid var(--border); flex-shrink: 0; cursor: pointer; background: #000;
+    }
+    .form-badge {
+      display: inline-block; background: rgba(56,189,248,0.14); color: var(--primary);
+      border: 1px solid rgba(56,189,248,0.35); border-radius: 999px;
+      padding: 2px 8px; font-size: 10px; font-weight: 800; margin: 0 4px 4px 0;
+    }
+    .form-badge.accent {
+      background: rgba(245,158,11,0.14); color: #fcd34d; border-color: rgba(245,158,11,0.4);
+    }
+    .form-badge.good {
+      background: rgba(16,185,129,0.14); color: #6ee7b7; border-color: rgba(16,185,129,0.4);
+    }
+    .form-check-grid {
+      display: grid; grid-template-columns: 1fr; gap: 5px; margin: 8px 0;
+    }
+    .form-check-row {
+      background: var(--bg); border: 1px solid var(--surface2); border-radius: 8px;
+      padding: 6px 8px; font-size: 11px;
+    }
+    .form-check-lbl { font-weight: 800; color: var(--primary); margin-bottom: 2px; }
+    .form-advice-box {
+      background: rgba(16,185,129,0.09); border: 1px solid rgba(16,185,129,0.35);
+      border-radius: 8px; padding: 8px 10px; margin-top: 8px; font-size: 11px;
+    }
+    .form-ball-box {
+      background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.35);
+      border-radius: 8px; padding: 8px 10px; margin-top: 6px; font-size: 11px;
     }
     .nav-item.active {
       background: rgba(56, 189, 248, 0.18);
@@ -329,10 +363,11 @@
     </div>
   </div>
   <nav class="top-nav">
-    <button type="button" class="nav-item active" onclick="switchTab('score', this)">🎳 スコア入力</button>
+    <button type="button" class="nav-item active" onclick="switchTab('score', this)">🎳 入力</button>
     <button type="button" class="nav-item" onclick="switchTab('stats', this)">📊 スタッツ</button>
-    <button type="button" class="nav-item" onclick="switchTab('ranking', this)">🏆 履歴・順位</button>
-    <button type="button" class="nav-item" onclick="switchTab('balls', this)">🔮 ボール登録</button>
+    <button type="button" class="nav-item" onclick="switchTab('ranking', this)">🏆 順位</button>
+    <button type="button" class="nav-item" onclick="switchTab('players', this)">👤 選手</button>
+    <button type="button" class="nav-item" onclick="switchTab('balls', this)">🔮 ボール</button>
   </nav>
 </header>
 
@@ -691,7 +726,60 @@
     </div>
   </div>
 
-  <!-- TAB 4: ボール登録＆マスター修正（スプレッドシート「ボール一覧」連携） -->
+  <!-- TAB 4: プレイヤー情報・投球動画AIフォーム解析 -->
+  <div id="tab-players" class="section">
+    <div class="card" style="border-color:rgba(56,189,248,0.45);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3 style="margin:0; font-size:15px;">🎬 投球動画からAIフォーム解析</h3>
+        <button type="button" class="btn-sm" onclick="openPlayerModal()">＋ 新規選手登録</button>
+      </div>
+      <p style="font-size:11px; color:var(--text-dim); margin:0 0 10px;">
+        投球動画を選ぶと、自動で6コマの連続分解写真を抽出してAIが投球タイプ・フォーム詳細・アドバイスを判定し、プレイヤー情報へ保存します。
+      </p>
+
+      <div class="grid-2" style="margin-bottom:8px;">
+        <div>
+          <label>対象プレイヤー</label>
+          <select id="formPlayerSelect"></select>
+        </div>
+        <div>
+          <label>補足メモ（任意）</label>
+          <input type="text" id="formPlayerNote" placeholder="例: 15P / 右投げ / 課題など" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <label>投球動画の共有URL（任意：Googleドライブ・YouTube限定公開等）</label>
+        <input type="url" id="formVideoUrl" placeholder="https://drive.google.com/... または YouTube URL" />
+      </div>
+
+      <div class="row-inline" style="margin-bottom:8px;">
+        <label class="btn-primary" style="text-align:center; flex:1; margin:0; cursor:pointer;">
+          🎥 投球動画を選択してAIフォーム解析
+          <input type="file" accept="video/*" style="display:none;" onchange="handleThrowingVideoUpload(event)" />
+        </label>
+      </div>
+      <div id="formUploadStatus" style="font-size:11px; color:var(--accent); margin-bottom:4px;"></div>
+      <div id="formExtractedPreview" class="form-strip" style="display:none;"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
+        <h3 style="margin:0; font-size:15px;">👥 プレイヤープロフィール帳</h3>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <select id="profileFilterPlayer" onchange="renderPlayerProfiles()" style="width:auto; padding:4px 8px; font-size:11px;">
+            <option value="ALL">全員表示</option>
+          </select>
+          <button type="button" class="btn-sm" onclick="fetchSharedScores()">🔄 更新</button>
+        </div>
+      </div>
+      <div id="playerProfilesList">
+        <p style="font-size:12px; color:var(--text-dim);">プレイヤー情報を読み込み中です...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: ボール登録＆マスター修正（スプレッドシート「ボール一覧」連携） -->
   <div id="tab-balls" class="section">
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -814,6 +902,17 @@
       </div>
       <div id="myBallList"></div>
     </div>
+  </div>
+</div>
+
+<!-- 分解写真 拡大モーダル -->
+<div id="thumbZoomModal" class="modal-backdrop" onclick="closeModal('thumbZoomModal')">
+  <div class="modal" style="max-width:480px; text-align:center; padding:12px;" onclick="event.stopPropagation()">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <strong style="font-size:13px;">🎞️ 投球フォーム分解写真</strong>
+      <button type="button" class="btn-sm" onclick="closeModal('thumbZoomModal')">✕</button>
+    </div>
+    <img id="thumbZoomImg" src="" style="max-width:100%; max-height:70vh; border-radius:8px; border:1px solid var(--border);" />
   </div>
 </div>
 
@@ -964,6 +1063,16 @@
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyb8KpDTj6yJ142MuK21_5UxSBV0t0iYe2ocXSttLrj1e7zIPYamnV24ZCfZK47iKwjIg/exec';
 
 const APP_CHANGELOG = [
+  {
+    version: 'v2.1',
+    date: '2026-11-26',
+    title: '「👤 選手」プロフィール帳＆投球動画AIフォーム解析を追加',
+    items: [
+      '上部ナビに「👤 選手」タブを新設し、チーム全員のプロフィール（HDCP・通算成績・マイボール・投球タイプ・AIアドバイス）を一覧できるようになりました',
+      '投球動画をアップロードすると自動で6コマの連続分解写真を抽出し、AIが投球スタイル・球質・5項目フォームチェック・強み／改善点・おすすめボール傾向を判定して保存します',
+      '過去の解析履歴も残るため、フォームの変化を見比べることができます'
+    ]
+  },
   {
     version: 'v2.0',
     date: '2026-11-26',
@@ -1130,6 +1239,7 @@ function init() {
       if (!state.gasUrl) state.gasUrl = DEFAULT_GAS_URL;
       if (!Array.isArray(state.balls)) state.balls = [];
       if (!Array.isArray(state.players)) state.players = [];
+      if (!Array.isArray(state.formAnalyses)) state.formAnalyses = [];
       if (!state.centers || !state.centers.length) state.centers = DEFAULT_CENTERS;
       if (!state.ballMaster) state.ballMaster = [];
     } catch (e) {}
@@ -1279,7 +1389,10 @@ function saveLocalState() {
     note: document.getElementById('condNote').value,
     imageUrl: state.cond.imageUrl || ''
   };
-  localStorage.setItem('strikeLedgerPro_v5', JSON.stringify(state));
+  try {
+    const slimFormAnalyses = (state.formAnalyses || []).map(a => ({ ...a, framesJson: '[]' }));
+    localStorage.setItem('strikeLedgerPro_v5', JSON.stringify({ ...state, formAnalyses: slimFormAnalyses }));
+  } catch (e) {}
 }
 
 function showToast(msg) {
@@ -1297,6 +1410,7 @@ function switchTab(name, el) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'stats') renderStats();
   if (name === 'ranking') renderRanking();
+  if (name === 'players') renderPlayerProfiles();
   if (name === 'balls') {
     initBallMasterUI();
     renderBallDb();
@@ -2165,6 +2279,389 @@ function handleScoreSheetPhoto(e) {
   reader.readAsDataURL(file);
 }
 
+/* 投球動画コマ抽出 ＆ AIフォーム解析 ＆ プレイヤープロフィール帳 */
+function openThumbZoom(src) {
+  const img = document.getElementById('thumbZoomImg');
+  if (img) img.src = src;
+  openModal('thumbZoomModal');
+}
+
+function escapeHtmlBasic(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function extractVideoFrames(file, frameCount) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.src = url;
+
+    const cleanup = () => {
+      try { URL.revokeObjectURL(url); } catch (e) {}
+    };
+
+    const metaTimer = setTimeout(() => {
+      cleanup();
+      reject(new Error('動画の読み込みがタイムアウトしました（MP4/MOV形式でお試しください）'));
+    }, 15000);
+
+    video.onerror = () => {
+      clearTimeout(metaTimer);
+      cleanup();
+      reject(new Error('この動画形式はブラウザで読み込めませんでした（MP4/MOVをお試しください）'));
+    };
+
+    video.onloadedmetadata = async () => {
+      clearTimeout(metaTimer);
+      const duration = video.duration;
+      if (!duration || !isFinite(duration) || duration <= 0) {
+        cleanup();
+        reject(new Error('動画の長さを取得できませんでした'));
+        return;
+      }
+
+      const vw = video.videoWidth || 640;
+      const vh = video.videoHeight || 360;
+      const aiMaxW = 480;
+      const aiScale = Math.min(1, aiMaxW / vw);
+      const aiCanvas = document.createElement('canvas');
+      aiCanvas.width = Math.max(160, Math.round(vw * aiScale));
+      aiCanvas.height = Math.max(90, Math.round(vh * aiScale));
+      const aiCtx = aiCanvas.getContext('2d');
+
+      const thMaxW = 180;
+      const thScale = Math.min(1, thMaxW / vw);
+      const thCanvas = document.createElement('canvas');
+      thCanvas.width = Math.max(90, Math.round(vw * thScale));
+      thCanvas.height = Math.max(50, Math.round(vh * thScale));
+      const thCtx = thCanvas.getContext('2d');
+
+      const aiFrames = [];
+      const thumbs = [];
+      const startT = duration * 0.10;
+      const endT = duration * 0.92;
+      const step = frameCount > 1 ? (endT - startT) / (frameCount - 1) : 0;
+
+      const seekTo = (t) => new Promise((resSeek) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          video.onseeked = null;
+          resSeek();
+        };
+        const tOut = setTimeout(finish, 2500);
+        video.onseeked = () => { clearTimeout(tOut); finish(); };
+        try {
+          video.currentTime = Math.min(duration - 0.05, Math.max(0.05, t));
+        } catch (e) {
+          clearTimeout(tOut);
+          finish();
+        }
+      });
+
+      try {
+        for (let i = 0; i < frameCount; i++) {
+          const t = startT + step * i;
+          await seekTo(t);
+          aiCtx.drawImage(video, 0, 0, aiCanvas.width, aiCanvas.height);
+          thCtx.drawImage(video, 0, 0, thCanvas.width, thCanvas.height);
+          aiFrames.push(aiCanvas.toDataURL('image/jpeg', 0.72));
+          thumbs.push(thCanvas.toDataURL('image/jpeg', 0.58));
+        }
+        cleanup();
+        resolve({ aiFrames, thumbs });
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
+  });
+}
+
+async function handleThrowingVideoUpload(e) {
+  const inputEl = e.target;
+  const file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+
+  const playerSel = document.getElementById('formPlayerSelect');
+  const player = playerSel ? String(playerSel.value || '').trim() : '';
+  if (!player) {
+    showToast('先に対象プレイヤーを選択（または新規登録）してください');
+    inputEl.value = '';
+    return;
+  }
+
+  const note = (document.getElementById('formPlayerNote') && document.getElementById('formPlayerNote').value.trim()) || '';
+  const videoUrl = (document.getElementById('formVideoUrl') && document.getElementById('formVideoUrl').value.trim()) || '';
+  const statusEl = document.getElementById('formUploadStatus');
+  const prevEl = document.getElementById('formExtractedPreview');
+
+  statusEl.textContent = '⏳ 動画から6コマの連続分解写真を抽出中...';
+  if (prevEl) { prevEl.style.display = 'none'; prevEl.innerHTML = ''; }
+
+  try {
+    const { aiFrames, thumbs } = await extractVideoFrames(file, 6);
+    if (prevEl) {
+      prevEl.style.display = 'flex';
+      prevEl.innerHTML = thumbs.map((src, idx) =>
+        '<img class="form-thumb" src="' + src + '" alt="コマ' + (idx + 1) + '" onclick="openThumbZoom(this.src)" />'
+      ).join('');
+    }
+
+    statusEl.textContent = '🤖 6コマを抽出しました！AIプロコーチがフォーム詳細＆アドバイスを解析中...';
+    let json = await gasPost({
+      action: 'analyzeThrowingForm',
+      player: player,
+      frames: aiFrames,
+      thumbs: thumbs,
+      videoUrl: videoUrl,
+      note: note
+    });
+    if (json.status !== 'ok' && isRetryableAiError(json.message)) {
+      statusEl.textContent = '⏳ AIサーバー混雑中のため、2秒後に自動で再試行しています...';
+      await new Promise(r => setTimeout(r, 2200));
+      json = await gasPost({
+        action: 'analyzeThrowingForm',
+        player: player,
+        frames: aiFrames,
+        thumbs: thumbs,
+        videoUrl: videoUrl,
+        note: note
+      });
+    }
+
+    if (json.status !== 'ok') {
+      statusEl.textContent = '❌ ' + formatAiErrorMessage(json.message);
+      return;
+    }
+
+    if (Array.isArray(json.formAnalyses)) {
+      state.formAnalyses = json.formAnalyses;
+    }
+    if (document.getElementById('formPlayerNote')) document.getElementById('formPlayerNote').value = '';
+    if (document.getElementById('formVideoUrl')) document.getElementById('formVideoUrl').value = '';
+    saveLocalState();
+    renderPlayerProfiles();
+    statusEl.textContent = '✅ ' + player + ' さんのフォーム解析＆プロフィール保存が完了しました！';
+    showToast('🎬 AIフォーム解析を保存しました！');
+  } catch (err) {
+    statusEl.textContent = '❌ ' + (err && err.message ? err.message : '動画解析中にエラーが発生しました');
+  } finally {
+    inputEl.value = '';
+  }
+}
+
+async function deleteFormAnalysisItem(rowNumber) {
+  if (!confirm('このフォーム解析履歴を削除しますか？')) return;
+  try {
+    const json = await gasPost({ action: 'deleteFormAnalysis', _rowNumber: rowNumber });
+    if (json.status === 'ok') {
+      if (Array.isArray(json.formAnalyses)) state.formAnalyses = json.formAnalyses;
+      saveLocalState();
+      renderPlayerProfiles();
+      showToast('🗑️ 解析履歴を削除しました');
+    } else {
+      showToast('❌ 削除エラー: ' + (json.message || '失敗'));
+    }
+  } catch (e) {
+    showToast('❌ 通信エラーが発生しました');
+  }
+}
+
+async function editFormVideoUrlItem(rowNumber, currentUrl) {
+  const nextUrl = prompt('投球動画の共有URL（Googleドライブ / YouTube等）を入力してください（空欄で解除）', currentUrl || '');
+  if (nextUrl === null) return;
+  try {
+    const json = await gasPost({ action: 'updateFormVideoUrl', _rowNumber: rowNumber, videoUrl: nextUrl.trim() });
+    if (json.status === 'ok') {
+      if (Array.isArray(json.formAnalyses)) state.formAnalyses = json.formAnalyses;
+      saveLocalState();
+      renderPlayerProfiles();
+      showToast('🔗 動画リンクを更新しました');
+    } else {
+      showToast('❌ 更新エラー: ' + (json.message || '失敗'));
+    }
+  } catch (e) {
+    showToast('❌ 通信エラーが発生しました');
+  }
+}
+
+function buildFormAnalysisBodyHtml(item, isCompact) {
+  let details = {};
+  try {
+    details = typeof item.detailsJson === 'string' ? JSON.parse(item.detailsJson) : (item.detailsJson || {});
+  } catch (e) {}
+  let thumbs = [];
+  try {
+    thumbs = typeof item.framesJson === 'string' ? JSON.parse(item.framesJson) : (item.framesJson || []);
+  } catch (e) {}
+
+  const badges = [
+    item.style ? '<span class="form-badge">🎳 ' + escapeHtmlBasic(item.style) + '</span>' : '',
+    item.hand ? '<span class="form-badge">' + escapeHtmlBasic(item.hand) + '</span>' : '',
+    item.speedLevel ? '<span class="form-badge accent">⚡ 球速: ' + escapeHtmlBasic(item.speedLevel) + '</span>' : '',
+    item.revLevel ? '<span class="form-badge good">🌀 回転: ' + escapeHtmlBasic(item.revLevel) + '</span>' : ''
+  ].filter(Boolean).join('');
+
+  const stripHtml = (Array.isArray(thumbs) && thumbs.length)
+    ? '<div class="form-strip">' + thumbs.map((src, i) =>
+        '<img class="form-thumb" src="' + src + '" alt="コマ' + (i + 1) + '" onclick="openThumbZoom(this.src)" />'
+      ).join('') + '</div><div style="font-size:10px; color:var(--text-dim); margin-top:-2px; margin-bottom:6px;">※コマ画像をタップすると拡大表示できます</div>'
+    : '';
+
+  const checks = details.checks || {};
+  const checkRows = [
+    ['アプローチ', checks.approach],
+    ['タイミング', checks.timing],
+    ['スイング軌道', checks.swing],
+    ['リリース', checks.release],
+    ['フィニッシュ', checks.finish]
+  ].filter(r => r[1]).map(r =>
+    '<div class="form-check-row"><div class="form-check-lbl">▸ ' + r[0] + '</div><div>' + escapeHtmlBasic(r[1]) + '</div></div>'
+  ).join('');
+
+  const strengths = Array.isArray(details.strengths) && details.strengths.length
+    ? '<div style="margin-top:6px; font-size:11px;"><strong style="color:#6ee7b7;">👍 強み:</strong> ' + details.strengths.map(escapeHtmlBasic).join(' ／ ') + '</div>'
+    : '';
+  const improvements = Array.isArray(details.improvements) && details.improvements.length
+    ? '<div style="margin-top:4px; font-size:11px;"><strong style="color:#fcd34d;">🎯 伸びしろ:</strong> ' + details.improvements.map(escapeHtmlBasic).join(' ／ ') + '</div>'
+    : '';
+
+  const adviceHtml = details.advice
+    ? '<div class="form-advice-box"><div style="font-weight:800; color:#6ee7b7; margin-bottom:2px;">💡 AIワンポイントアドバイス</div><div>' + escapeHtmlBasic(details.advice) + '</div></div>'
+    : '';
+  const ballHtml = details.ballRecommendation
+    ? '<div class="form-ball-box"><div style="font-weight:800; color:#c4b5fd; margin-bottom:2px;">🔮 相性の良いボール傾向</div><div>' + escapeHtmlBasic(details.ballRecommendation) + '</div></div>'
+    : '';
+
+  const videoUrl = String(item.videoUrl || '').trim();
+  const safeUrl = /^https?:\/\//i.test(videoUrl) ? videoUrl : '';
+  const actionsHtml = '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">' +
+    (safeUrl ? '<a href="' + escapeHtmlBasic(safeUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-sm" style="text-decoration:none; border-color:var(--primary); color:var(--primary);">▶ 投球動画を開く</a>' : '') +
+    (item._rowNumber ? '<button type="button" class="btn-sm" onclick="editFormVideoUrlItem(' + item._rowNumber + ', \'' + escapeHtmlBasic(videoUrl).replace(/'/g, '&#39;') + '\')">🔗 動画URL' + (safeUrl ? '変更' : '紐づけ') + '</button>' : '') +
+    (item._rowNumber ? '<button type="button" class="btn-sm" style="border-color:var(--split); color:#fca5a5;" onclick="deleteFormAnalysisItem(' + item._rowNumber + ')">🗑️ 削除</button>' : '') +
+  '</div>';
+
+  return '<div>' +
+    '<div style="font-size:10px; color:var(--text-dim); margin-bottom:4px;">📅 解析日: ' + escapeHtmlBasic(formatDateStr(item.date) || item.timestamp || '') + (item.note ? ' / メモ: ' + escapeHtmlBasic(item.note) : '') + '</div>' +
+    '<div>' + badges + '</div>' +
+    stripHtml +
+    (item.summary ? '<div style="font-size:12px; line-height:1.5; margin:6px 0; color:#f1f5f9;">' + escapeHtmlBasic(item.summary) + '</div>' : '') +
+    (isCompact ? '' : '<div class="form-check-grid">' + checkRows + '</div>') +
+    strengths +
+    improvements +
+    adviceHtml +
+    ballHtml +
+    actionsHtml +
+  '</div>';
+}
+
+function renderPlayerProfiles() {
+  const formSel = document.getElementById('formPlayerSelect');
+  const filterSel = document.getElementById('profileFilterPlayer');
+  const listBox = document.getElementById('playerProfilesList');
+  if (!listBox) return;
+
+  const allRecords = getAllHistoryRecords() || [];
+  const analyses = Array.isArray(state.formAnalyses) ? state.formAnalyses : [];
+  const playerMap = new Map();
+
+  (state.players || []).forEach(p => {
+    if (!p || !p.player) return;
+    const nm = String(p.player).trim();
+    playerMap.set(nm, {
+      name: nm,
+      hdcp: Number(p.hdcp || 0),
+      balls: parsePlayerBalls(p),
+      records: [],
+      analyses: []
+    });
+  });
+  allRecords.forEach(r => {
+    const nm = String(r.player || '').trim();
+    if (!nm) return;
+    if (!playerMap.has(nm)) playerMap.set(nm, { name: nm, hdcp: Number(r.hdcpPerGame || 0), balls: [], records: [], analyses: [] });
+    playerMap.get(nm).records.push(r);
+  });
+  analyses.forEach(a => {
+    const nm = String(a.player || '').trim();
+    if (!nm) return;
+    if (!playerMap.has(nm)) playerMap.set(nm, { name: nm, hdcp: 0, balls: [], records: [], analyses: [] });
+    playerMap.get(nm).analyses.push(a);
+  });
+
+  const sortedPlayers = [...playerMap.values()].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+  if (formSel) {
+    const prev = formSel.value || state.player || '';
+    formSel.innerHTML = '<option value="">-- プレイヤー選択 --</option>' +
+      sortedPlayers.map(p => '<option value="' + escapeHtmlBasic(p.name) + '">' + escapeHtmlBasic(p.name) + '</option>').join('');
+    if (prev && sortedPlayers.some(p => p.name === prev)) formSel.value = prev;
+    else if (sortedPlayers.length) formSel.value = sortedPlayers[0].name;
+  }
+
+  if (filterSel) {
+    const prevF = filterSel.value || 'ALL';
+    filterSel.innerHTML = '<option value="ALL">全員表示 (' + sortedPlayers.length + '名)</option>' +
+      sortedPlayers.map(p => '<option value="' + escapeHtmlBasic(p.name) + '">' + escapeHtmlBasic(p.name) + '</option>').join('');
+    filterSel.value = (prevF === 'ALL' || sortedPlayers.some(p => p.name === prevF)) ? prevF : 'ALL';
+  }
+
+  const filterVal = filterSel ? filterSel.value : 'ALL';
+  const targetPlayers = filterVal === 'ALL' ? sortedPlayers : sortedPlayers.filter(p => p.name === filterVal);
+
+  if (!targetPlayers.length) {
+    listBox.innerHTML = '<p style="font-size:12px; color:var(--text-dim);">まだプレイヤーが登録されていません。「＋ 新規選手登録」から追加してください。</p>';
+    return;
+  }
+
+  listBox.innerHTML = targetPlayers.map(p => {
+    const st = p.records.length ? aggregateRecordsStats(p.records) : null;
+    const statsLine = st
+      ? 'AVE: <strong>' + st.avg + '</strong> / HI: <strong>' + st.highGame + '</strong> / STR: ' + st.strRate + ' / SPR: ' + st.sprRate + ' (' + st.gamesCount + 'G)'
+      : 'スコア履歴なし';
+    const ballsHtml = p.balls.length
+      ? '<div style="margin:6px 0;">' + p.balls.map(b => '<span class="pill-tag" style="margin:0 4px 4px 0;">🔮 ' + escapeHtmlBasic(b.name) + '</span>').join('') + '</div>'
+      : '<div style="font-size:11px; color:var(--text-dim); margin:4px 0;">マイボール未登録</div>';
+
+    let analysisSection = '';
+    if (p.analyses.length > 0) {
+      const latest = p.analyses[0];
+      const past = p.analyses.slice(1);
+      const pastHtml = past.length
+        ? '<details style="margin-top:10px; border-top:1px dashed var(--surface2); padding-top:8px;">' +
+            '<summary style="font-size:11px; color:var(--primary);">📜 過去のフォーム解析履歴（' + past.length + '件） ▾</summary>' +
+            '<div style="margin-top:8px;">' + past.map(pa =>
+              '<div style="background:var(--surface); border:1px solid var(--surface2); border-radius:8px; padding:8px; margin-bottom:8px;">' +
+                buildFormAnalysisBodyHtml(pa, false) +
+              '</div>'
+            ).join('') + '</div>' +
+          '</details>'
+        : '';
+      analysisSection = '<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--surface2);">' +
+        buildFormAnalysisBodyHtml(latest, false) +
+        pastHtml +
+      '</div>';
+    } else {
+      analysisSection = '<div style="margin-top:8px; padding:10px; background:rgba(255,255,255,0.03); border-radius:8px; font-size:11px; color:var(--text-dim);">まだ投球動画のAI解析がありません。上の「🎥 投球動画を選択してAIフォーム解析」からアップロードすると、特徴やアドバイスが自動記載されます。</div>';
+    }
+
+    return '<div style="background:var(--bg); border:1px solid var(--surface2); border-radius:12px; padding:12px; margin-bottom:10px;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
+        '<div style="font-size:16px; font-weight:900;">👤 ' + escapeHtmlBasic(p.name) + (p.hdcp > 0 ? ' <span style="font-size:11px; color:var(--accent);">HDCP ' + p.hdcp + '</span>' : '') + '</div>' +
+        '<span style="font-size:10px; color:var(--text-dim);">解析 ' + p.analyses.length + '件</span>' +
+      '</div>' +
+      '<div style="font-size:11px; color:var(--text-dim); margin-top:3px;">' + statsLine + '</div>' +
+      ballsHtml +
+      analysisSection +
+    '</div>';
+  }).join('');
+}
+
 /* スコア入力・計算・ランキング・CSV */
 function getCurrentGame() { return state.games[state.activeGame]; }
 
@@ -2840,9 +3337,13 @@ function applyFetchedData(json) {
     }
     renderPlayersDropdown();
   }
+  if (Array.isArray(json.formAnalyses)) {
+    state.formAnalyses = json.formAnalyses;
+  }
   saveLocalState();
   renderRanking();
   renderStats();
+  renderPlayerProfiles();
 }
 
 async function fetchSharedScores(silent) {

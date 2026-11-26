@@ -16,13 +16,15 @@ function doGet(e) {
   const centers = centerMaster.length ? centerMaster : readSheetObjects_(getOrCreateCentersSheet_(ss));
   const ballMaster = readSheetObjects_(getOrCreateBallMasterSheet_(ss));
   const players = readSheetObjects_(getOrCreatePlayersSheet_(ss));
+  const formAnalyses = readSheetObjects_(getOrCreateFormAnalysesSheet_(ss)).reverse();
   return jsonOut_({
     status: 'ok',
     records: scores,
     conditions: conditions,
     centers: centers,
     ballMaster: ballMaster,
-    players: players
+    players: players,
+    formAnalyses: formAnalyses
   });
 }
 
@@ -39,6 +41,15 @@ function doPost(e) {
     }
     if (data.action === 'analyzeScoreSheet') {
       return handleScoreSheetAnalyze_(data);
+    }
+    if (data.action === 'analyzeThrowingForm') {
+      return handleThrowingFormAnalyze_(ss, data);
+    }
+    if (data.action === 'deleteFormAnalysis') {
+      return withScriptLock_(() => handleDeleteFormAnalysis_(ss, data));
+    }
+    if (data.action === 'updateFormVideoUrl') {
+      return withScriptLock_(() => handleUpdateFormVideoUrl_(ss, data));
     }
     if (data.action === 'updateBallMaster') {
       return withScriptLock_(() => handleUpdateBallMaster_(ss, data));
@@ -669,6 +680,148 @@ function readSheetObjects_(sheet) {
 
 function jsonOut_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getOrCreateFormAnalysesSheet_(ss) {
+  let sheet = ss.getSheetByName('FormAnalyses');
+  if (!sheet) {
+    sheet = ss.insertSheet('FormAnalyses');
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      'timestamp', 'date', 'player', 'style', 'hand',
+      'speedLevel', 'revLevel', 'summary', 'detailsJson',
+      'framesJson', 'videoUrl', 'note'
+    ]);
+  }
+  return sheet;
+}
+
+function handleThrowingFormAnalyze_(ss, data) {
+  const player = String(data.player || '').trim();
+  if (!player) {
+    return jsonOut_({ status: 'error', message: 'プレイヤーを選択してください' });
+  }
+  const frames = Array.isArray(data.frames) ? data.frames : [];
+  if (!frames.length) {
+    return jsonOut_({ status: 'error', message: '動画からコマ画像を抽出できませんでした' });
+  }
+  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!apiKey) {
+    return jsonOut_({ status: 'error', message: 'スクリプトプロパティに GEMINI_API_KEY が設定されていません' });
+  }
+
+  const note = String(data.note || '').trim();
+  const prompt = [
+    'あなたはプロボウリングコーチです。',
+    '以下の画像は、ボウリングプレイヤー「' + player + '」の投球動画から時系列順に抽出した連続分解写真（' + frames.length + 'コマ）です。',
+    (note ? 'プレイヤーからの補足情報: ' + note : ''),
+    '画像から読み取れるフォームの特徴・詳細データ・実践的なアドバイスを分析し、以下のJSON形式のみで返してください。',
+    '{',
+    '  "style": "投球タイプ（例: ストローカー / トゥイーナー / クランカー / 両手投げ（ツーハンド） / ローダウン 等）",',
+    '  "hand": "利き手・投げ方（例: 右投げ（片手） / 左投げ（片手） / 両手投げ（右） 等）",',
+    '  "speedLevel": "球速の傾向（例: 速め / やや速め / 標準 / ややゆったり）",',
+    '  "revLevel": "回転の傾向（例: 高回転 / やや高回転 / 中回転 / ナチュラル）",',
+    '  "summary": "このプレイヤーのフォーム全体の印象と特徴（日本語80〜130文字）",',
+    '  "checks": {',
+    '    "approach": "アプローチ・歩数・リズムの観察と評価（40〜70文字）",',
+    '    "timing": "プッシュアウェイ〜スイングのタイミング評価（40〜70文字）",',
+    '    "swing": "バックスイングの高さ・軌道・肩の開きの評価（40〜70文字）",',
+    '    "release": "リリース時の手首・前傾・ボールの転がり評価（40〜70文字）",',
+    '    "finish": "スライド・体幹バランス・フォロースルーの評価（40〜70文字）"',
+    '  },',
+    '  "strengths": ["良い点・強み1（簡潔に）", "良い点・強み2"],',
+    '  "improvements": ["伸びしろ・改善ポイント1（簡潔に）", "伸びしろ・改善ポイント2"],',
+    '  "advice": "次回の練習ですぐ意識できる実践的なワンポイントアドバイス（日本語100〜150文字）",',
+    '  "ballRecommendation": "この投球タイプに相性の良いボール傾向（カバー・コア・表面仕上げの目安、60〜100文字）"',
+    '}',
+    '注意: 画像から見えにくい項目がある場合も、写っている範囲から無理のない丁寧な表現でプロの視点からコメントしてください。'
+  ].filter(Boolean).join('\n');
+
+  const parts = [{ text: prompt }];
+  frames.slice(0, 8).forEach(f => {
+    const b64 = String(f || '').split(',')[1];
+    if (b64) {
+      parts.push({ inline_data: { mime_type: 'image/jpeg', data: b64 } });
+    }
+  });
+
+  const parsed = callGeminiJson_(apiKey, parts);
+
+  // スプレッドシートの1セル上限(50,000文字)を超えないようサムネイル配列を安全に収める
+  let thumbs = Array.isArray(data.thumbs) ? data.thumbs.slice(0, 8) : [];
+  let thumbsStr = JSON.stringify(thumbs);
+  while (thumbs.length > 0 && thumbsStr.length > 46000) {
+    thumbs.pop();
+    thumbsStr = JSON.stringify(thumbs);
+  }
+
+  const tz = Session.getScriptTimeZone() || 'Asia/Tokyo';
+  const todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const detailsObj = {
+    checks: parsed.checks || {},
+    strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+    improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
+    advice: parsed.advice || '',
+    ballRecommendation: parsed.ballRecommendation || ''
+  };
+
+  const formAnalyses = withScriptLock_(() => {
+    const sheet = getOrCreateFormAnalysesSheet_(ss);
+    sheet.appendRow([
+      new Date(),
+      todayStr,
+      player,
+      parsed.style || '',
+      parsed.hand || '',
+      parsed.speedLevel || '',
+      parsed.revLevel || '',
+      parsed.summary || '',
+      JSON.stringify(detailsObj),
+      thumbsStr,
+      String(data.videoUrl || '').trim(),
+      note
+    ]);
+    return readSheetObjects_(sheet).reverse();
+  });
+
+  return jsonOut_({
+    status: 'ok',
+    parsed: parsed,
+    formAnalyses: formAnalyses
+  });
+}
+
+function handleDeleteFormAnalysis_(ss, data) {
+  const rowNum = Number(data._rowNumber || 0);
+  if (!rowNum || rowNum < 2) {
+    return jsonOut_({ status: 'error', message: '削除対象の行番号が不正です' });
+  }
+  const sheet = getOrCreateFormAnalysesSheet_(ss);
+  if (rowNum > sheet.getLastRow()) {
+    return jsonOut_({ status: 'error', message: '対象データが見つかりません' });
+  }
+  sheet.deleteRow(rowNum);
+  return jsonOut_({
+    status: 'ok',
+    formAnalyses: readSheetObjects_(sheet).reverse()
+  });
+}
+
+function handleUpdateFormVideoUrl_(ss, data) {
+  const rowNum = Number(data._rowNumber || 0);
+  if (!rowNum || rowNum < 2) {
+    return jsonOut_({ status: 'error', message: '更新対象の行番号が不正です' });
+  }
+  const sheet = getOrCreateFormAnalysesSheet_(ss);
+  if (rowNum > sheet.getLastRow()) {
+    return jsonOut_({ status: 'error', message: '対象データが見つかりません' });
+  }
+  sheet.getRange(rowNum, 11).setValue(String(data.videoUrl || '').trim());
+  return jsonOut_({
+    status: 'ok',
+    formAnalyses: readSheetObjects_(sheet).reverse()
+  });
 }
 
 // 初回のみApps Scriptエディタから「実行」して外部通信（Gemini API）の権限を許可するための関数
